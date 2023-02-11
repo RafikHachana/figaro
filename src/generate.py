@@ -116,6 +116,9 @@ def main():
 
 
   midi_files = glob.glob(os.path.join(ROOT_DIR, '**/*.mid'), recursive=True)
+
+  # Take only the first MIDI file
+  midi_files = midi_files[:1]
   
   dm = model.get_datamodule(midi_files, vae_module=vae_module)
   dm.setup('test')
