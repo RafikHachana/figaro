@@ -156,7 +156,7 @@ def main():
     )
 
   if ALTER_DESCRIPTION:
-    dl = description_control_iterator()
+    dl = description_control_iterator(dl)
   
   with torch.no_grad():
     for batch in dl:
