@@ -1,5 +1,7 @@
 import torch
 from torch.nn.utils.rnn import pad_sequence
+from copy import deepcopy
+import alter_description
 
 def combine_batches(batches, bars_per_sequence=8, description_flavor='none', device=None):
   if device is None:
@@ -110,5 +112,17 @@ def medley_iterator(dl, n_pieces=2, n_bars=8, description_flavor='none'):
         description_flavor=description_flavor
       )
       yield batch
+  except StopIteration:
+    return
+  
+def description_control_iterator(dl):
+  dl_iter = iter(dl)
+  try:
+    while True:
+      batch = next(dl_iter)
+      new_batch = deepcopy(batch)
+      new_batch['description'] = alter_description.change_mean_pitch(batch['description'], delta=5)
+      yield batch
+      yield new_batch
   except StopIteration:
     return

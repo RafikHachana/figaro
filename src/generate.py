@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 from models.vae import VqVaeModule
 from models.seq2seq import Seq2SeqModule
 from datasets import MidiDataset, SeqCollator
-from utils import medley_iterator
+from utils import description_control_iterator, medley_iterator
 from input_representation import remi2midi
 
 MODEL = os.getenv('MODEL', '')
@@ -28,6 +28,10 @@ CHECKPOINT = os.getenv('CHECKPOINT', None)
 VAE_CHECKPOINT = os.getenv('VAE_CHECKPOINT', None)
 BATCH_SIZE = int(os.getenv('BATCH_SIZE', 1))
 VERBOSE = int(os.getenv('VERBOSE', 2))
+
+# Added for our experiment
+ALTER_DESCRIPTION = os.getenv('ALTER_DESCRIPTION', 'False') == 'True'
+
 
 def reconstruct_sample(model, batch, 
   initial_context=1, 
@@ -150,6 +154,9 @@ def main():
       n_bars=N_MEDLEY_BARS, 
       description_flavor=model.description_flavor
     )
+
+  if ALTER_DESCRIPTION:
+    dl = description_control_iterator()
   
   with torch.no_grad():
     for batch in dl:
