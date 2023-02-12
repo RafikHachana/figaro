@@ -123,7 +123,8 @@ def main():
   
   dm = model.get_datamodule(midi_files, vae_module=vae_module)
   dm.setup('test')
-  midi_files = dm.test_ds.files
+  # TODO: Get back to this
+  # midi_files = dm.test_ds.files
   random.shuffle(midi_files)
 
   if MAX_N_FILES > 0:
