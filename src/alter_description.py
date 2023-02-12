@@ -11,7 +11,7 @@ def change_mean_pitch(description, delta=1):
     for token in description:
         tmp = token
         if len(token.split('_')) == 2 and token.split('_')[0] == constants.MEAN_PITCH_KEY:
-            index = int(token.split('_'))
+            index = int(token.split('_')[1])
             new_index = index + delta
 
             # Clip the values
