@@ -1,7 +1,11 @@
 import constants
+from vocab import DescriptionVocab
+import torch
 
-
+# FIXME: Only supports BATCH_SIZE=1
 def change_mean_pitch(description, delta=1):
+    desc_vocab = DescriptionVocab()
+    description = desc_vocab.decode(description[0])
     print("Given description", description)
     result = []
     for token in description:
@@ -19,5 +23,5 @@ def change_mean_pitch(description, delta=1):
 
     print("Altered description", result)
     
-
-    return result
+    result = desc_vocab.encode(result)
+    return torch.Tensor([result])
