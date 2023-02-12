@@ -121,8 +121,8 @@ def description_control_iterator(dl):
     while True:
       batch = next(dl_iter)
       new_batch = deepcopy(batch)
-      new_batch['description'] = alter_description.change_mean_pitch(batch['description'], delta=5)
-      new_batch['file'] = new_batch['file'] + f'_altered_mean_pitch_({5})'
+      new_batch['description'] = alter_description.change_mean_pitch(batch['description'], delta=12)
+      new_batch['files'] = [x + f'_altered_mean_pitch_({12})' for x in new_batch['files']]
       yield batch
       yield new_batch
   except StopIteration:
