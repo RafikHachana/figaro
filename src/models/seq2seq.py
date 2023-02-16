@@ -398,7 +398,7 @@ class Seq2SeqModule(pl.LightningModule):
         print(f"{i+1}/{max_length}", next_tokens)
 
 
-      next_bars = torch.tensor([1 if f'{BAR_KEY}_' in token else 0 for token in next_tokens], dtype=torch.int)
+      next_bars = torch.tensor([1 if f'{BAR_KEY}_' in token else 0 for token in next_tokens], dtype=torch.int).to(self.device)
       next_bar_ids = bar_ids[:, i].clone() + next_bars
 
       next_positions = [f"{POSITION_KEY}_0" if f'{BAR_KEY}_' in token else token for token in next_tokens]
