@@ -393,7 +393,7 @@ class Seq2SeqModule(pl.LightningModule):
       pr = pr.view(-1, pr.size(-1))
 
       next_token_ids = torch.multinomial(pr, 1).view(-1).to(x.device)
-      next_tokens = self.vocab.decode(next_token_ids)
+      next_tokens = self.vocab.decode(next_token_ids.cpu())
       if verbose:
         print(f"{i+1}/{max_length}", next_tokens)
 
