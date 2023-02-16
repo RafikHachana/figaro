@@ -341,7 +341,7 @@ class Seq2SeqModule(pl.LightningModule):
     else:
       encoder_hidden_states = None
 
-    curr_bars = torch.zeros(batch_size).fill_(-1)
+    curr_bars = torch.zeros(batch_size).fill_(-1).to(self.device)
     # Sample using decoder until max_length is reached or all sequences are done
     for i in range(curr_len - 1, max_length):
       # print(f"\r{i+1}/{max_length}", end='')
