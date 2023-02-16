@@ -404,7 +404,7 @@ class Seq2SeqModule(pl.LightningModule):
       next_positions = [f"{POSITION_KEY}_0" if f'{BAR_KEY}_' in token else token for token in next_tokens]
       next_positions = [int(token.split('_')[-1]) if f'{POSITION_KEY}_' in token else None for token in next_positions]
       next_positions = [pos if next_pos is None else next_pos for pos, next_pos in zip(position_ids[:, i], next_positions)]
-      next_position_ids = torch.tensor(next_positions, dtype=torch.int)
+      next_position_ids = torch.tensor(next_positions, dtype=torch.int).to(self.device)
 
       is_done.masked_fill_((next_token_ids == eos_token_id).all(dim=-1), True)
       next_token_ids[is_done] = pad_token_id
