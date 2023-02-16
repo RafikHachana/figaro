@@ -55,8 +55,42 @@ def transpose_the_chord_progression(description, delta=1):
     return torch.Tensor([result])
 
 
-def remove_some_instruments(description, delta=1):
-    pass
+def remove_most_common_instrument(description, delta=1):
+    instrument_counts = {}
+
+    desc_vocab = DescriptionVocab()
+    description = desc_vocab.decode(description[0])
+    print("Given description", description)
+    result = []
+    for token in description:
+        # tmp = token
+        if len(token.split('_')) == 2 and token.split('_')[0] == constants.INSTRUMENT_KEY:
+            if token not in instrument_counts:
+                instrument_counts[token] = 0
+            instrument_counts[token] += 1
+
+        # result.append(tmp)
+
+    most_common_instrument_token = None
+    count = 0
+    for k, v in instrument_counts.items():
+        if v > count:
+            count = v
+            most_common_instrument_token = k
+
+    print("Most common instrument", most_common_instrument_token)
+
+    # Now we reconstruct the description and skip the most common instrument in the sequence
+    for token in description:
+        if token == most_common_instrument_token:
+            continue
+
+        result.append(token)
+
+    print("Altered description", result)
+    
+    result = desc_vocab.encode(result)
+    return torch.Tensor([result])
 
 
 
