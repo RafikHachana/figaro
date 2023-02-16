@@ -25,8 +25,35 @@ def control_ordinal_attributes(description, delta=1, attribute_key=constants.MEA
     result = desc_vocab.encode(result)
     return torch.Tensor([result])
 
+# TODO: Fix repetitive code
 def transpose_the_chord_progression(description, delta=1):
-    pass
+    pitch_classes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+
+    desc_vocab = DescriptionVocab()
+    description = desc_vocab.decode(description[0])
+    print("Given description", description)
+    result = []
+    for token in description:
+        tmp = token
+        if len(token.split('_')) == 2 and token.split('_')[0] == constants.CHORD_KEY:
+            pitch, quality = token.split('_')[1].split(":")
+            pitch_index = None
+            for i, p in enumerate(pitch_classes):
+                if p == pitch:
+                    pitch_index = i
+                    break
+
+            new_pitch_index = (pitch_index + delta)%delta
+
+            tmp = f'{constants.CHORD_KEY}_{pitch_classes[new_pitch_index]}:{quality}'
+
+        result.append(tmp)
+
+    print("Altered description", result)
+    
+    result = desc_vocab.encode(result)
+    return torch.Tensor([result])
+
 
 def remove_some_instruments(description, delta=1):
     pass
