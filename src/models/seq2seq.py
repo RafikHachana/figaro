@@ -333,7 +333,7 @@ class Seq2SeqModule(pl.LightningModule):
       z, desc_bar_ids = None, None
       
 
-    is_done = torch.zeros(batch_size, dtype=torch.bool)
+    is_done = torch.zeros(batch_size, dtype=torch.bool).to(self.device)
 
     # Precompute encoder hidden states for cross-attention
     if self.description_flavor == 'latent':
@@ -361,8 +361,8 @@ class Seq2SeqModule(pl.LightningModule):
         curr_bars = next_bars
 
         if bars_changed:
-          z_ = torch.zeros(batch_size, self.context_size, dtype=torch.int)
-          desc_bar_ids_ = torch.zeros(batch_size, self.context_size, dtype=torch.int)
+          z_ = torch.zeros(batch_size, self.context_size, dtype=torch.int).to(self.device)
+          desc_bar_ids_ = torch.zeros(batch_size, self.context_size, dtype=torch.int).to(self.device)
 
           for j in range(batch_size):
             curr_bar = bar_ids_[j, 0]
