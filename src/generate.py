@@ -12,6 +12,9 @@ from datasets import MidiDataset, SeqCollator
 from utils import description_control_iterator, medley_iterator
 from input_representation import remi2midi
 
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print("DEVICE", device)
+
 MODEL = os.getenv('MODEL', '')
 
 ROOT_DIR = os.getenv('ROOT_DIR', './lmd_full')
@@ -42,12 +45,12 @@ def reconstruct_sample(model, batch,
 ):
   batch_size, seq_len = batch['input_ids'].shape[:2]
 
-  batch_ = { key: batch[key][:, :initial_context] for key in ['input_ids', 'bar_ids', 'position_ids'] }
+  batch_ = { key: batch[key][:, :initial_context].to(device) for key in ['input_ids', 'bar_ids', 'position_ids'] }
   if model.description_flavor in ['description', 'both']:
-    batch_['description'] = batch['description']
-    batch_['desc_bar_ids'] = batch['desc_bar_ids']
+    batch_['description'] = batch['description'].to(device)
+    batch_['desc_bar_ids'] = batch['desc_bar_ids'].to(device)
   if model.description_flavor in ['latent', 'both']:
-    batch_['latents'] = batch['latents']
+    batch_['latents'] = batch['latents'].to(device)
 
   max_len = seq_len + 1024
   if max_iter > 0:
@@ -109,12 +112,16 @@ def main():
   print(f"Saving generated files to: {output_dir}")
 
   if VAE_CHECKPOINT:
+    print("Loading VAE Model from checkpoint ...")
     vae_module = VqVaeModule.load_from_checkpoint(VAE_CHECKPOINT)
     vae_module.cpu()
   else:
     vae_module = None
 
+  print("Loading Seq2Seq Model from checkpoint ...")
   model = Seq2SeqModule.load_from_checkpoint(CHECKPOINT)
+  
+  model.to(device)
   model.freeze()
   model.eval()
 
