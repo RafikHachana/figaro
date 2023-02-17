@@ -26,6 +26,24 @@ def control_ordinal_attributes(description, delta=1, attribute_key=constants.MEA
     result = desc_vocab.encode(result)
     return torch.Tensor([result])
 
+def _alter_description_batch(description, func, **kwargs):
+    result = []
+    for i in range(len(description)):
+        result.append(func(description[i:i+1], **kwargs))
+    return torch.cat(result)
+
+def control_ordinal_attributes_batch(description, delta=1, attribute_key=constants.MEAN_PITCH_KEY, n_bins=33):
+    return _alter_description_batch(description, control_ordinal_attributes, delta=delta, attribute_key=attribute_key, n_bins=n_bins)
+
+def transpose_the_chord_progression_batch(description, delta=1):
+    return _alter_description_batch(description, transpose_the_chord_progression, delta=delta)
+
+def remove_most_common_instrument_batch(description):
+    return _alter_description_batch(description, remove_most_common_instrument)
+
+def remove_random_instrument_batch(description):
+    return _alter_description_batch(description, remove_random_instrument)
+
 # TODO: Fix repetitive code
 def transpose_the_chord_progression(description, delta=1):
     pitch_classes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
@@ -56,7 +74,7 @@ def transpose_the_chord_progression(description, delta=1):
     return torch.Tensor([result])
 
 
-def remove_most_common_instrument(description, delta=1):
+def remove_most_common_instrument(description):
     instrument_counts = {}
 
     desc_vocab = DescriptionVocab()
@@ -94,7 +112,7 @@ def remove_most_common_instrument(description, delta=1):
     return torch.Tensor([result])
 
 
-def remove_random_instrument(description, delta=1):
+def remove_random_instrument(description):
     instrument_counts = {}
 
     desc_vocab = DescriptionVocab()
