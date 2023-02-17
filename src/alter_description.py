@@ -128,7 +128,7 @@ def remove_random_instrument(description):
 
     ind = np.random.randint(0, len(instrument_counts))
 
-    most_common_instrument_token = instrument_counts.items()[ind][0]
+    most_common_instrument_token = list(instrument_counts.items())[ind][0]
 
     print("Most common instrument", most_common_instrument_token)
 
