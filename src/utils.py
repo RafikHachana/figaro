@@ -2,6 +2,8 @@ import torch
 from torch.nn.utils.rnn import pad_sequence
 from copy import deepcopy
 import alter_description
+import constants
+import numpy as np
 
 def combine_batches(batches, bars_per_sequence=8, description_flavor='none', device=None):
   if device is None:
@@ -115,15 +117,54 @@ def medley_iterator(dl, n_pieces=2, n_bars=8, description_flavor='none'):
   except StopIteration:
     return
   
+def generate_controlled_ordinal_batches(description):
+  attribute_keys = {
+    "mean_pitch": constants.MEAN_PITCH_KEY,
+    "mean_duration": constants.MEAN_DURATION_KEY,
+    "mean_velocity": constants.MEAN_VELOCITY_KEY,
+    "note_density": constants.NOTE_DENSITY_KEY
+  }
+
+  BINS = 33
+  result = []
+  for k, v in attribute_keys.items():
+    tmp = deepcopy(description)
+    delta = np.random.randint(0, BINS)
+    tmp['description'] = alter_description.control_ordinal_attributes_batch(tmp['description'], delta=delta, attribute_key=v, n_bins=BINS)
+    tmp['files'] = [x + f'_altered_{k}_({delta})' for x in tmp['files']]
+
+    result.append(tmp)
+
+  return result
+
+def generate_controlled_batches(batch):
+  result = generate_controlled_ordinal_batches(batch)
+
+  # Transpose the chord progression
+  tmp = deepcopy(batch)
+  delta = np.random.randint(0, 12)
+  tmp['description'] = alter_description.transpose_the_chord_progression_batch(description=tmp['description'], delta=delta)
+  tmp['files'] = [x + f'_transposed_chords_({delta})' for x in tmp['files']]
+  result.append(tmp)
+
+  # Remove a random instrument
+  tmp = deepcopy(batch)
+  tmp['description'] = alter_description.remove_random_instrument_batch(tmp['description'])
+  tmp['files'] = [x + f'_remove_rand_inst' for x in tmp['files']]
+
+  result.append(tmp)
+
+  return result
+
+  
 def description_control_iterator(dl):
   dl_iter = iter(dl)
   try:
     while True:
       batch = next(dl_iter)
-      new_batch = deepcopy(batch)
-      new_batch['description'] = alter_description.change_mean_pitch(batch['description'], delta=12)
-      new_batch['files'] = [x + f'_altered_mean_pitch_({12})' for x in new_batch['files']]
+      altered_batches = generate_controlled_batches(batch)
       yield batch
-      yield new_batch
+      for b in altered_batches:
+        yield b
   except StopIteration:
     return
