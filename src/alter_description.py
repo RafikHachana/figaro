@@ -1,6 +1,7 @@
 import constants
 from vocab import DescriptionVocab
 import torch
+import numpy as np
 
 def control_ordinal_attributes(description, delta=1, attribute_key=constants.MEAN_PITCH_KEY, n_bins=33):
     desc_vocab = DescriptionVocab()
@@ -92,6 +93,38 @@ def remove_most_common_instrument(description, delta=1):
     result = desc_vocab.encode(result)
     return torch.Tensor([result])
 
+
+def remove_random_instrument(description, delta=1):
+    instrument_counts = {}
+
+    desc_vocab = DescriptionVocab()
+    description = desc_vocab.decode(description[0])
+    print("Given description", description)
+    result = []
+    for token in description:
+        if len(token.split('_')) == 2 and token.split('_')[0] == constants.INSTRUMENT_KEY:
+            if token not in instrument_counts:
+                instrument_counts[token] = 0
+            instrument_counts[token] += 1
+
+
+    ind = np.random.randint(0, len(instrument_counts))
+
+    most_common_instrument_token = instrument_counts.items()[ind][0]
+
+    print("Most common instrument", most_common_instrument_token)
+
+    # Now we reconstruct the description and skip the most common instrument in the sequence
+    for token in description:
+        if token == most_common_instrument_token:
+            continue
+
+        result.append(token)
+
+    print("Altered description", result)
+    
+    result = desc_vocab.encode(result)
+    return torch.Tensor([result])
 
 
 
