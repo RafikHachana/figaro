@@ -54,7 +54,7 @@ def transpose_the_chord_progression(description, delta=1):
     result = []
     for token in description:
         tmp = token
-        if len(token.split('_')) == 2 and token.split('_')[0] == constants.CHORD_KEY:
+        if len(token.split('_')) == 2 and token.split('_')[0] == constants.CHORD_KEY and token.split('_')[1] != "N:N":
             pitch, quality = token.split('_')[1].split(":")
             pitch_index = None
             for i, p in enumerate(pitch_classes):
