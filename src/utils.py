@@ -133,28 +133,28 @@ def generate_controlled_ordinal_batches(description):
     tmp['description'] = alter_description.control_ordinal_attributes_batch(tmp['description'], delta=delta, attribute_key=v, n_bins=BINS)
     tmp['files'] = [x + f'_altered_{k}_({delta})' for x in tmp['files']]
 
-    result.append(tmp)
+    yield tmp
 
-  return result
+  return
 
 def generate_controlled_batches(batch):
-  result = generate_controlled_ordinal_batches(batch)
+  yield from generate_controlled_ordinal_batches(batch)
 
   # Transpose the chord progression
   tmp = deepcopy(batch)
   delta = np.random.randint(0, 12)
   tmp['description'] = alter_description.transpose_the_chord_progression_batch(description=tmp['description'], delta=delta)
   tmp['files'] = [x + f'_transposed_chords_({delta})' for x in tmp['files']]
-  result.append(tmp)
+  yield tmp
 
   # Remove a random instrument
   tmp = deepcopy(batch)
   tmp['description'] = alter_description.remove_random_instrument_batch(tmp['description'])
   tmp['files'] = [x + f'_remove_rand_inst' for x in tmp['files']]
 
-  result.append(tmp)
+  yield tmp
 
-  return result
+  return
 
   
 def description_control_iterator(dl):
@@ -162,9 +162,9 @@ def description_control_iterator(dl):
   try:
     while True:
       batch = next(dl_iter)
-      altered_batches = generate_controlled_batches(batch)
       yield batch
-      for b in altered_batches:
-        yield b
+      # for b in altered_batches:
+      # yield b
+      yield from generate_controlled_batches(batch)
   except StopIteration:
     return

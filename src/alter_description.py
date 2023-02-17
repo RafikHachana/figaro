@@ -6,7 +6,7 @@ import numpy as np
 def control_ordinal_attributes(description, delta=1, attribute_key=constants.MEAN_PITCH_KEY, n_bins=33):
     desc_vocab = DescriptionVocab()
     description = desc_vocab.decode(description[0])
-    print("Given description", description)
+    # print("Given description", description)
     result = []
     for token in description:
         tmp = token
@@ -21,7 +21,7 @@ def control_ordinal_attributes(description, delta=1, attribute_key=constants.MEA
 
         result.append(tmp)
 
-    print("Altered description", result)
+    # print("Altered description", result)
     
     result = desc_vocab.encode(result)
     return torch.Tensor([result])
@@ -50,7 +50,7 @@ def transpose_the_chord_progression(description, delta=1):
 
     desc_vocab = DescriptionVocab()
     description = desc_vocab.decode(description[0])
-    print("Given description", description)
+    # print("Given description", description)
     result = []
     for token in description:
         tmp = token
@@ -68,7 +68,7 @@ def transpose_the_chord_progression(description, delta=1):
 
         result.append(tmp)
 
-    print("Altered description", result)
+    # print("Altered description", result)
     
     result = desc_vocab.encode(result)
     return torch.Tensor([result])
@@ -79,7 +79,7 @@ def remove_most_common_instrument(description):
 
     desc_vocab = DescriptionVocab()
     description = desc_vocab.decode(description[0])
-    print("Given description", description)
+    # print("Given description", description)
     result = []
     for token in description:
         # tmp = token
@@ -97,7 +97,7 @@ def remove_most_common_instrument(description):
             count = v
             most_common_instrument_token = k
 
-    print("Most common instrument", most_common_instrument_token)
+    # print("Most common instrument", most_common_instrument_token)
 
     # Now we reconstruct the description and skip the most common instrument in the sequence
     for token in description:
@@ -106,7 +106,7 @@ def remove_most_common_instrument(description):
 
         result.append(token)
 
-    print("Altered description", result)
+    # print("Altered description", result)
     
     result = desc_vocab.encode(result)
     return torch.Tensor([result])
@@ -117,7 +117,7 @@ def remove_random_instrument(description):
 
     desc_vocab = DescriptionVocab()
     description = desc_vocab.decode(description[0])
-    print("Given description", description)
+    # print("Given description", description)
     result = []
     for token in description:
         if len(token.split('_')) == 2 and token.split('_')[0] == constants.INSTRUMENT_KEY:
@@ -130,7 +130,7 @@ def remove_random_instrument(description):
 
     most_common_instrument_token = list(instrument_counts.items())[ind][0]
 
-    print("Most common instrument", most_common_instrument_token)
+    # print("Most common instrument", most_common_instrument_token)
 
     # Now we reconstruct the description and skip the most common instrument in the sequence
     for token in description:
@@ -139,7 +139,7 @@ def remove_random_instrument(description):
 
         result.append(token)
 
-    print("Altered description", result)
+    # print("Altered description", result)
     
     result = desc_vocab.encode(result)
     return torch.Tensor([result])
@@ -150,7 +150,7 @@ def remove_random_instrument(description):
 def change_mean_pitch(description, delta=1):
     desc_vocab = DescriptionVocab()
     description = desc_vocab.decode(description[0])
-    print("Given description", description)
+    # print("Given description", description)
     result = []
     for token in description:
         tmp = token
@@ -165,7 +165,7 @@ def change_mean_pitch(description, delta=1):
 
         result.append(tmp)
 
-    print("Altered description", result)
+    # print("Altered description", result)
     
     result = desc_vocab.encode(result)
     return torch.Tensor([result])
