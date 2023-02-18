@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from torch.nn.utils.rnn import pad_sequence
 import math
 from datasets import MidiDataModule
-from vocab import RemiVocab, DescriptionVocab
+from vocab import RemiVocab, DescriptionVocab, Tokens
 from constants import PAD_TOKEN, EOS_TOKEN, BAR_KEY, POSITION_KEY
 from datetime import datetime
 
@@ -311,6 +311,8 @@ class Seq2SeqModule(pl.LightningModule):
     
     # Setup and parsing arguments
 
+    bar_token_ids = self.vocab.encode(Tokens.get_bar_tokens())
+
     pad_token_id = self.vocab.to_i(pad_token)
     eos_token_id = self.vocab.to_i(eos_token)
 
@@ -395,16 +397,19 @@ class Seq2SeqModule(pl.LightningModule):
       pr = F.softmax(logits, dim=-1)
       pr = pr.view(-1, pr.size(-1))
 
-      next_token_ids = torch.multinomial(pr, 1).view(-1).to(x.device)
-      next_tokens = self.vocab.decode(next_token_ids.cpu())
-      if verbose:
-        print(f"{i+1}/{max_length}", next_tokens)
+      next_token_ids = torch.multinomial(pr, 1, replacement=True).view(-1).to(x.device)
+      # next_tokens = self.vocab.decode(next_token_ids.cpu())
+
+      def is_a_bar_token_id(token):
+        return token in bar_token_ids
 
 
-      next_bars = torch.tensor([1 if f'{BAR_KEY}_' in token else 0 for token in next_tokens], dtype=torch.int).to(self.device)
+      next_bars = torch.tensor([1 if is_a_bar_token_id(token) else 0 for token in next_token_ids], dtype=torch.int).to(self.device)
       next_bar_ids = bar_ids[:, i].clone() + next_bars
 
-      next_positions = [f"{POSITION_KEY}_0" if f'{BAR_KEY}_' in token else token for token in next_tokens]
+      # TODO: FIX THIS
+      # next_positions = [f"{POSITION_KEY}_0" if f'{BAR_KEY}_' in token else token for token in next_token_ids]
+      next_positions = [f"{POSITION_KEY}_0" for token in next_token_ids]
       next_positions = [int(token.split('_')[-1]) if f'{POSITION_KEY}_' in token else None for token in next_positions]
       next_positions = [pos if next_pos is None else next_pos for pos, next_pos in zip(position_ids[:, i], next_positions)]
       next_position_ids = torch.tensor(next_positions, dtype=torch.int).to(self.device)

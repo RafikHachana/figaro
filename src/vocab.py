@@ -96,6 +96,9 @@ class Tokens:
       position_tokens
     )
 
+  def get_bar_tokens():
+    return [f'{BAR_KEY}_{i}' for i in range(MAX_N_BARS)]
+
 class Vocab:
   def __init__(self, counter, specials=[PAD_TOKEN, UNK_TOKEN, BOS_TOKEN, EOS_TOKEN, MASK_TOKEN], unk_token=UNK_TOKEN):
     self.vocab = torchtext.vocab.vocab(counter)
