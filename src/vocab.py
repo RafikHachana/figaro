@@ -98,6 +98,9 @@ class Tokens:
 
   def get_bar_tokens():
     return [f'{BAR_KEY}_{i}' for i in range(MAX_N_BARS)]
+  
+  def get_position_tokens():
+    return [f'{POSITION_KEY}_{i}' for i in range(MAX_BAR_LENGTH*4*DEFAULT_POS_PER_QUARTER)]
 
 class Vocab:
   def __init__(self, counter, specials=[PAD_TOKEN, UNK_TOKEN, BOS_TOKEN, EOS_TOKEN, MASK_TOKEN], unk_token=UNK_TOKEN):

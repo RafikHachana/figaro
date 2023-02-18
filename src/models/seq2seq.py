@@ -312,6 +312,10 @@ class Seq2SeqModule(pl.LightningModule):
     # Setup and parsing arguments
 
     bar_token_ids = self.vocab.encode(Tokens.get_bar_tokens())
+    position_token_ids = self.vocab.encode(Tokens.get_position_tokens())
+
+    print(bar_token_ids)
+    print(position_token_ids)
 
     pad_token_id = self.vocab.to_i(pad_token)
     eos_token_id = self.vocab.to_i(eos_token)
@@ -401,7 +405,18 @@ class Seq2SeqModule(pl.LightningModule):
       # next_tokens = self.vocab.decode(next_token_ids.cpu())
 
       def is_a_bar_token_id(token):
+        print(bar_token_ids)
         return token in bar_token_ids
+      
+      def get_position(token_id):
+        if is_a_bar_token_id(token_id):
+          return 0
+        
+        for ind, tk in enumerate(position_token_ids):
+          if tk == token_id:
+            return ind
+          
+        return None
 
 
       next_bars = torch.tensor([1 if is_a_bar_token_id(token) else 0 for token in next_token_ids], dtype=torch.int).to(self.device)
@@ -409,8 +424,8 @@ class Seq2SeqModule(pl.LightningModule):
 
       # TODO: FIX THIS
       # next_positions = [f"{POSITION_KEY}_0" if f'{BAR_KEY}_' in token else token for token in next_token_ids]
-      next_positions = [f"{POSITION_KEY}_0" for token in next_token_ids]
-      next_positions = [int(token.split('_')[-1]) if f'{POSITION_KEY}_' in token else None for token in next_positions]
+      next_positions = [get_position(token) for token in next_token_ids]
+      # next_positions = [int(token.split('_')[-1]) if f'{POSITION_KEY}_' in token else None for token in next_positions]
       next_positions = [pos if next_pos is None else next_pos for pos, next_pos in zip(position_ids[:, i], next_positions)]
       next_position_ids = torch.tensor(next_positions, dtype=torch.int).to(self.device)
 
