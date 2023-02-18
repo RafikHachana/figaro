@@ -7,6 +7,7 @@ import math
 from datasets import MidiDataModule
 from vocab import RemiVocab, DescriptionVocab
 from constants import PAD_TOKEN, EOS_TOKEN, BAR_KEY, POSITION_KEY
+from datetime import datetime
 
 
 import transformers
@@ -344,6 +345,7 @@ class Seq2SeqModule(pl.LightningModule):
     curr_bars = torch.zeros(batch_size).fill_(-1).to(self.device)
     # Sample using decoder until max_length is reached or all sequences are done
     for i in range(curr_len - 1, max_length):
+      start_time = datetime.utcnow()
       # print(f"\r{i+1}/{max_length}", end='')
       x_ = x[:, -self.context_size:].to(self.device)
       bar_ids_ = bar_ids[:, -self.context_size:].to(self.device)
@@ -384,8 +386,9 @@ class Seq2SeqModule(pl.LightningModule):
           
           encoder_hidden_states = self.encode(z_, desc_bar_ids_)
 
+      time_before_forward_pass = datetime.utcnow()
       logits = self.decode(x_, bar_ids=bar_ids_, position_ids=position_ids_, encoder_hidden_states=encoder_hidden_states)
-
+      time_after_forward_pass = datetime.utcnow()
       idx = min(self.context_size - 1, i)
       logits = logits[:, idx] / temp
 
@@ -414,6 +417,18 @@ class Seq2SeqModule(pl.LightningModule):
       x = torch.cat([x, next_token_ids.clone().unsqueeze(1)], dim=1)
       bar_ids = torch.cat([bar_ids, next_bar_ids.unsqueeze(1)], dim=1)
       position_ids = torch.cat([position_ids, next_position_ids.unsqueeze(1)], dim=1)
+
+      final_time = datetime.utcnow()
+
+      pre_model_time = (time_before_forward_pass - start_time).total_seconds()
+      model_time = (time_after_forward_pass - time_before_forward_pass).total_seconds()
+      post_model_time = (final_time - time_after_forward_pass).total_seconds()
+
+      print(f"""
+      - Time before model pass: {pre_model_time}s
+      - Model pass (decoder): {model_time}s
+      - Time after model pass:  {post_model_time}s
+      """)
 
       if torch.all(is_done):
         break
