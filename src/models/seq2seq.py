@@ -7,8 +7,9 @@ import math
 from datasets import MidiDataModule
 from vocab import RemiVocab, DescriptionVocab, Tokens
 from constants import PAD_TOKEN, EOS_TOKEN, BAR_KEY, POSITION_KEY
-from datetime import datetime
+# from datetime import datetime
 import time
+from tqdm import tqdm
 
 
 import transformers
@@ -368,8 +369,8 @@ class Seq2SeqModule(pl.LightningModule):
 
     curr_bars = torch.zeros(batch_size, device=self.device).fill_(-1)
     # Sample using decoder until max_length is reached or all sequences are done
-    for i in range(curr_len - 1, max_length):
-      start_time = time.time()
+    start_time = time.time()
+    for i in tqdm(range(curr_len - 1, max_length)):
       # print(f"\r{i+1}/{max_length}", end='')
       x_ = x[:, -self.context_size:].to(self.device)
       bar_ids_ = bar_ids[:, -self.context_size:].to(self.device)
@@ -410,7 +411,7 @@ class Seq2SeqModule(pl.LightningModule):
           
           encoder_hidden_states = self.encode(z_, desc_bar_ids_)
 
-      time_before_forward_pass = time.time()
+      # time_before_forward_pass = time.time()
       logits = self.decode(x_, bar_ids=bar_ids_, position_ids=position_ids_, encoder_hidden_states=encoder_hidden_states)
       idx = min(self.context_size - 1, i)
       logits = logits[:, idx] / temp
@@ -441,37 +442,46 @@ class Seq2SeqModule(pl.LightningModule):
 
       # next_positions = torch.where(next_token_ids)
       next_positions = torch.where((next_token_ids >= bar_token_ids[0]) & (next_token_ids <= bar_token_ids[-1]), position_token_ids[0], next_token_ids)
-      next_positions = torch.where((next_positions >= position_token_ids[0]) & (next_positions <= position_token_ids[-1]), next_positions - position_token_ids[0], -1)
-      next_position_ids = torch.where(next_positions.int() != -1, next_positions.int(), position_ids[:, i])
+      next_positions = torch.where((next_positions >= position_token_ids[0]) & (next_positions <= position_token_ids[-1]), next_positions - position_token_ids[0], -1).int()
+      # print(next_token_ids.size())
+      # print(next_positions.size())
+      next_position_ids = torch.where(next_positions != -1, next_positions, position_ids[:, i])
+      # next_position_ids = torch.where()
 
 
       is_done.masked_fill_((next_token_ids == eos_token_id).all(dim=-1), True)
-      next_token_ids[is_done] = pad_token_id
+      # print(is_done)
+      # print(is_done.device)
+      # print(next_token_ids.device)
+      # next_token_ids[is_done] = torch.tensor([pad_token_id], device=self.device)
+      next_token_ids = torch.where(is_done, pad_token_id, next_token_ids)
+      # time_after_forward_pass = time.time()
       if max_bars > 0:
         is_done.masked_fill_(next_bar_ids >= max_bars + 1, True)
 
-      time_after_forward_pass = time.time()
       x = torch.cat([x, next_token_ids.clone().unsqueeze(1)], dim=1)
       bar_ids = torch.cat([bar_ids, next_bar_ids.unsqueeze(1)], dim=1)
       position_ids = torch.cat([position_ids, next_position_ids.unsqueeze(1)], dim=1)
 
-      final_time = time.time()
+      # final_time = time.time()
 
-      pre_model_time = (time_before_forward_pass - start_time)
-      model_time = (time_after_forward_pass - time_before_forward_pass)
-      post_model_time = (final_time - time_after_forward_pass)
+      # pre_model_time = (time_before_forward_pass - start_time)
+      # model_time = (time_after_forward_pass - time_before_forward_pass)
+      # post_model_time = (final_time - time_after_forward_pass)
 
-      print(f"""
-      - Time before model pass: {pre_model_time}s
-      - Model pass (decoder): {model_time}s
-      - Time after model pass:  {post_model_time}s
-      """)
+      # print(f"""
+      # - Time before model pass: {pre_model_time}s
+      # - Model pass (decoder): {model_time}s
+      # - Time after model pass:  {post_model_time}s
+      # """)
 
-      print(f"{i+1}/{max_length}")
+      # print(f"{i+1}/{max_length}")
 
       if torch.all(is_done):
         break
     # print()
+
+    print(f"Sampled a batch in {time.time() - start_time} seconds.")
 
     return {
       'sequences': x,
