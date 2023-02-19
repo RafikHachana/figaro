@@ -8,6 +8,7 @@ from datasets import MidiDataModule
 from vocab import RemiVocab, DescriptionVocab, Tokens
 from constants import PAD_TOKEN, EOS_TOKEN, BAR_KEY, POSITION_KEY
 from datetime import datetime
+import time
 
 
 import transformers
@@ -311,6 +312,23 @@ class Seq2SeqModule(pl.LightningModule):
     
     # Setup and parsing arguments
 
+    # def is_a_bar_token_id(token):
+    #   # print(bar_token_ids)
+    #   return token >= bar_token_ids[0] and token <= bar_token_ids[-1]
+    
+    # def get_position(token_id):
+    #   if is_a_bar_token_id(token_id):
+    #     return 0
+      
+    #   # for ind, tk in enumerate(position_token_ids):
+    #   #   if tk == token_id:
+    #   #     return ind
+
+    #   if token_id >= position_token_ids[0] and token_id <= position_token_ids[-1]:
+    #     return token_id - position_token_ids[0]
+        
+    #   return None
+
     bar_token_ids = self.vocab.encode(Tokens.get_bar_tokens())
     position_token_ids = self.vocab.encode(Tokens.get_position_tokens())
 
@@ -324,9 +342,9 @@ class Seq2SeqModule(pl.LightningModule):
 
     i = curr_len - 1
 
-    x = batch['input_ids']
-    bar_ids = batch['bar_ids']
-    position_ids = batch['position_ids']
+    x = batch['input_ids'].to(self.device)
+    bar_ids = batch['bar_ids'].to(self.device)
+    position_ids = batch['position_ids'].to(self.device)
     assert x.shape[:2] == bar_ids.shape and x.shape[:2] == position_ids.shape, f"Input, bar and position ids weren't of compatible shapes: {x.shape}, {bar_ids.shape}, {position_ids.shape}"
     
     if self.description_flavor == 'both':
@@ -351,7 +369,7 @@ class Seq2SeqModule(pl.LightningModule):
     curr_bars = torch.zeros(batch_size).fill_(-1).to(self.device)
     # Sample using decoder until max_length is reached or all sequences are done
     for i in range(curr_len - 1, max_length):
-      start_time = datetime.utcnow()
+      start_time = time.time()
       # print(f"\r{i+1}/{max_length}", end='')
       x_ = x[:, -self.context_size:].to(self.device)
       bar_ids_ = bar_ids[:, -self.context_size:].to(self.device)
@@ -392,63 +410,64 @@ class Seq2SeqModule(pl.LightningModule):
           
           encoder_hidden_states = self.encode(z_, desc_bar_ids_)
 
-      time_before_forward_pass = datetime.utcnow()
+      time_before_forward_pass = time.time()
       logits = self.decode(x_, bar_ids=bar_ids_, position_ids=position_ids_, encoder_hidden_states=encoder_hidden_states)
-      time_after_forward_pass = datetime.utcnow()
       idx = min(self.context_size - 1, i)
       logits = logits[:, idx] / temp
 
       pr = F.softmax(logits, dim=-1)
       pr = pr.view(-1, pr.size(-1))
 
-      next_token_ids = torch.multinomial(pr, 1, replacement=True).view(-1).to(x.device)
+      next_token_ids = torch.max(pr, 1).indices.view(-1).to(x.device)
+      # next_token_ids = torch.multinomial(pr, 1).view(-1).to(x.device)
       # next_tokens = self.vocab.decode(next_token_ids.cpu())
 
-      def is_a_bar_token_id(token):
-        print(bar_token_ids)
-        return token in bar_token_ids
       
-      def get_position(token_id):
-        if is_a_bar_token_id(token_id):
-          return 0
-        
-        for ind, tk in enumerate(position_token_ids):
-          if tk == token_id:
-            return ind
-          
-        return None
 
 
-      next_bars = torch.tensor([1 if is_a_bar_token_id(token) else 0 for token in next_token_ids], dtype=torch.int).to(self.device)
-      next_bar_ids = bar_ids[:, i].clone() + next_bars
+      # next_bars = torch.tensor([1 if is_a_bar_token_id(token) else 0 for token in next_token_ids], dtype=torch.int).to(self.device)
+      # print(next_bars)
+      next_bars = ((next_token_ids >= bar_token_ids[0]) & (next_token_ids <= bar_token_ids[-1])).int()
+      # print(alternative)
+      # next_bar_ids = bar_ids[:, i].clone() + next_bars
+      next_bar_ids = bar_ids[:, i] + next_bars
 
       # TODO: FIX THIS
       # next_positions = [f"{POSITION_KEY}_0" if f'{BAR_KEY}_' in token else token for token in next_token_ids]
-      next_positions = [get_position(token) for token in next_token_ids]
+      # next_positions = [get_position(token) for token in next_token_ids.cpu()]
       # next_positions = [int(token.split('_')[-1]) if f'{POSITION_KEY}_' in token else None for token in next_positions]
-      next_positions = [pos if next_pos is None else next_pos for pos, next_pos in zip(position_ids[:, i], next_positions)]
-      next_position_ids = torch.tensor(next_positions, dtype=torch.int).to(self.device)
+      # next_positions = [pos if next_pos is None else next_pos for pos, next_pos in zip(position_ids[:, i], next_positions)]
+      # next_position_ids = torch.tensor(next_positions, dtype=torch.int).to(self.device)
+
+      # next_positions = torch.where(next_token_ids)
+      next_positions = torch.where((next_token_ids >= bar_token_ids[0]) & (next_token_ids <= bar_token_ids[-1]), position_token_ids[0], next_token_ids)
+      next_positions = torch.where((next_positions >= position_token_ids[0]) & (next_positions <= position_token_ids[-1]), next_positions - position_token_ids[0], -1)
+      next_position_ids = torch.where(next_positions.int() != -1, next_positions.int(), position_ids[:, i])
+
 
       is_done.masked_fill_((next_token_ids == eos_token_id).all(dim=-1), True)
       next_token_ids[is_done] = pad_token_id
       if max_bars > 0:
         is_done.masked_fill_(next_bar_ids >= max_bars + 1, True)
 
+      time_after_forward_pass = time.time()
       x = torch.cat([x, next_token_ids.clone().unsqueeze(1)], dim=1)
       bar_ids = torch.cat([bar_ids, next_bar_ids.unsqueeze(1)], dim=1)
       position_ids = torch.cat([position_ids, next_position_ids.unsqueeze(1)], dim=1)
 
-      final_time = datetime.utcnow()
+      final_time = time.time()
 
-      pre_model_time = (time_before_forward_pass - start_time).total_seconds()
-      model_time = (time_after_forward_pass - time_before_forward_pass).total_seconds()
-      post_model_time = (final_time - time_after_forward_pass).total_seconds()
+      pre_model_time = (time_before_forward_pass - start_time)
+      model_time = (time_after_forward_pass - time_before_forward_pass)
+      post_model_time = (final_time - time_after_forward_pass)
 
       print(f"""
       - Time before model pass: {pre_model_time}s
       - Model pass (decoder): {model_time}s
       - Time after model pass:  {post_model_time}s
       """)
+
+      print(f"{i+1}/{max_length}")
 
       if torch.all(is_done):
         break
