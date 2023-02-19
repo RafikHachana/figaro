@@ -44,6 +44,21 @@ def remove_most_common_instrument_batch(description):
 def remove_random_instrument_batch(description):
     return _alter_description_batch(description, remove_random_instrument)
 
+def _alter_description_batch_random_batch(description, func, **kwargs):
+    result = []
+    deltas = []
+    for i in range(len(description)):
+        delta = np.random.randint(0, 33)
+        deltas.append(delta)
+        result.append(func(description[i:i+1], delta=delta, **kwargs))
+    return torch.cat(result), deltas
+
+def control_ordinal_attributes_batch_randomize(description, attribute_key=constants.MEAN_PITCH_KEY, n_bins=33):
+    return _alter_description_batch_random_batch(description, control_ordinal_attributes, attribute_key=attribute_key, n_bins=n_bins)
+
+def transpose_the_chord_progression_batch_randomize(description):
+    return _alter_description_batch_random_batch(description, transpose_the_chord_progression)
+
 # TODO: Fix repetitive code
 def transpose_the_chord_progression(description, delta=1):
     pitch_classes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
