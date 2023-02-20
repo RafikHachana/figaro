@@ -79,7 +79,7 @@ def transpose_the_chord_progression(description, delta=1):
                     pitch_index = i
                     break
 
-            new_pitch_index = (pitch_index + delta)%delta
+            new_pitch_index = (pitch_index + delta)%len(pitch_classes)
 
             tmp = f'{constants.CHORD_KEY}_{pitch_classes[new_pitch_index]}:{quality}'
 
