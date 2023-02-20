@@ -48,7 +48,9 @@ def _alter_description_batch_random_batch(description, func, **kwargs):
     result = []
     deltas = []
     for i in range(len(description)):
-        delta = np.random.randint(0, 33)
+        delta = 0
+        while delta == 0:
+            delta = np.random.randint(-33, 33)
         deltas.append(delta)
         result.append(func(description[i:i+1], delta=delta, **kwargs))
     return torch.cat(result), deltas
