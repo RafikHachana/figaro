@@ -150,11 +150,17 @@ def remove_random_instrument(description):
     # print("Most common instrument", most_common_instrument_token)
 
     # Now we reconstruct the description and skip the most common instrument in the sequence
+    skipped_instruments = 0
     for token in description:
         if token == most_common_instrument_token:
+            skipped_instruments += 1
             continue
 
         result.append(token)
+
+    # Re-pad the sequence to preserve length
+    for i in range(skipped_instruments):
+        result.append(constants.PAD_TOKEN)
 
     # print("Altered description", result)
     
