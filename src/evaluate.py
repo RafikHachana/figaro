@@ -18,7 +18,7 @@ METRICS = [
   'groove_crossent', 'groove_kldiv', 'groove_sim',
 ]
 
-DF_KEYS = ['id', 'original', 'sample'] + METRICS
+DF_KEYS = ['id', 'original', 'sample', 'controlled_attribute'] + METRICS
 
 keys = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 qualities = ['maj', 'min', 'dim', 'aug', 'dom7', 'maj7', 'min7', 'None']
@@ -183,6 +183,12 @@ def main():
 
       for g1, g2, cg1, cg2 in zip(orig.groups, sample.groups, chord_groups1, chord_groups2):
         row = pd.DataFrame([{ 'id': sample_id, 'original': orig_file, 'sample': sample_file }])
+
+
+        row['controlled_attribute'] = "none"
+        
+        if (sample_file.split("__")) == 2:
+          row['controlled_attribute'] = sample_file.split("__")[1]
 
         meta1, meta2 = meta_stats(g1, ticks_per_beat=orig.pm.resolution), meta_stats(g2, ticks_per_beat=sample.pm.resolution)
         row['pitch_oa'] = overlapping_area(meta1['pitch_mean'], meta1['pitch_std'], meta2['pitch_mean'], meta2['pitch_std'])
