@@ -187,7 +187,7 @@ def main():
 
         row['controlled_attribute'] = "none"
         
-        if (sample_file.split("__")) == 2:
+        if len(sample_file.split("__")) == 2:
           row['controlled_attribute'] = sample_file.split("__")[1]
 
         meta1, meta2 = meta_stats(g1, ticks_per_beat=orig.pm.resolution), meta_stats(g2, ticks_per_beat=sample.pm.resolution)
