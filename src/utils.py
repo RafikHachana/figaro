@@ -146,15 +146,15 @@ def generate_controlled_batches(batch):
 
   yield tmp
 
-  # Transpose the chord progression
-  tmp = deepcopy(batch)
-  # delta = np.random.randint(0, 12)
-  tmp['description'], deltas = alter_description.transpose_the_chord_progression_batch_randomize(description=tmp['description'])
-  tmp['files'] = [x[:-4] + f'__transposed_chords_({d}).mid' for x, d in zip(tmp['files'], deltas)]
-  yield tmp
+  # # Transpose the chord progression
+  # tmp = deepcopy(batch)
+  # # delta = np.random.randint(0, 12)
+  # tmp['description'], deltas = alter_description.transpose_the_chord_progression_batch_randomize(description=tmp['description'])
+  # tmp['files'] = [x[:-4] + f'__transposed_chords_({d}).mid' for x, d in zip(tmp['files'], deltas)]
+  # yield tmp
 
 
-  yield from generate_controlled_ordinal_batches(batch)
+  # yield from generate_controlled_ordinal_batches(batch)
   return
 
   
@@ -163,7 +163,7 @@ def description_control_iterator(dl):
   try:
     while True:
       batch = next(dl_iter)
-      yield batch
+      # yield batch
       # for b in altered_batches:
       # yield b
       yield from generate_controlled_batches(batch)
