@@ -309,7 +309,7 @@ def main():
   os.makedirs(os.path.dirname(OUT_FILE), exist_ok=True)
   metrics.to_csv(OUT_FILE)
 
-  summary_keys = ['inst_f1', 'chord_f1', 'time_sig_acc', 'pitch_oa', 'velocity_oa', 'duration_oa', 'chroma_sim', 'groove_sim']
+  summary_keys = ['inst_f1', 'chord_f1', 'controlled_attribute', 'time_sig_acc', 'pitch_oa', 'velocity_oa', 'duration_oa', 'chroma_sim', 'groove_sim']
   summary = metrics[summary_keys + ['id']].groupby('id').mean().mean()
 
   nsq_err = metrics.groupby('id').mean()['note_density_nsq_err']
