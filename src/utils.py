@@ -141,8 +141,8 @@ def generate_controlled_batches(batch):
 
   # Remove a random instrument
   tmp = deepcopy(batch)
-  tmp['description'] = alter_description.remove_random_instrument_batch(tmp['description'])
-  tmp['files'] = [x[:-4] + f'__remove_rand_inst.mid' for x in tmp['files']]
+  tmp['description'], instr_names = alter_description.remove_random_instrument_batch(tmp['description'])
+  tmp['files'] = [x[:-4] + f'__remove_rand_inst_({instr_name}).mid' for x, instr_name in zip(tmp['files'], instr_names)]
 
   yield tmp
 

@@ -42,7 +42,15 @@ def remove_most_common_instrument_batch(description):
     return _alter_description_batch(description, remove_most_common_instrument)
 
 def remove_random_instrument_batch(description):
-    return _alter_description_batch(description, remove_random_instrument)
+    result = []
+    removed_instruments = []
+    for i in range(len(description)):
+        # result.append(func(description[i:i+1], **kwargs))
+        tmp, removed_instrument = remove_random_instrument(description[i:i+1])
+        result.append(tmp)
+        removed_instruments.append(removed_instrument)
+    return torch.cat(result), removed_instruments
+    # return _alter_description_batch(description, remove_random_instrument)
 
 def _alter_description_batch_random_batch(description, func, **kwargs):
     result = []
@@ -165,7 +173,7 @@ def remove_random_instrument(description):
     # print("Altered description", result)
     
     result = desc_vocab.encode(result)
-    return torch.Tensor([result])
+    return torch.Tensor([result]), most_common_instrument_token
 
 
 
