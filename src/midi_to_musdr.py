@@ -6,7 +6,7 @@ import glob
 
 # file_path = ""
 PATH = os.getenv('SAMPLES_DIR', './samples')
-MAX_FILES = os.getenv('MAX_FILES', 1)
+MAX_FILES = int(os.getenv('MAX_FILES', 1))
 
 files = glob.glob(f"{PATH}/**/*.mid")
 
