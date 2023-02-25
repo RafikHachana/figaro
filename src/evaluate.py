@@ -219,7 +219,7 @@ def main():
           control_info_split = control_info.split("_")
           attribute_name = "_".join(control_info_split[1:-1])
 
-          if "inst" not in attribute_name:
+          if "rand" not in attribute_name:
             control_value = int(control_info_split[-1][1:-1])
 
           if "pitch" in attribute_name:
