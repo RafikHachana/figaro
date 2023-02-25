@@ -318,5 +318,10 @@ def main():
   print('***** SUMMARY *****')
   print(summary)
 
+  second_summary = metrics[summary_keys + ['id']].groupby('id').mean().groupby('controlled_attribute').mean()
+
+  print("--- SECOND SUMMARY ----")
+  print(second_summary)
+
 if __name__ == '__main__':
   main()
