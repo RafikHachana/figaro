@@ -18,7 +18,7 @@ METRICS = [
   'groove_crossent', 'groove_kldiv', 'groove_sim',
 ]
 
-DF_KEYS = ['id', 'original', 'sample', 'controlled_attribute'] + METRICS
+DF_KEYS = ['id', 'original', 'sample', 'controlled_attribute', 'control'] + METRICS
 
 keys = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 qualities = ['maj', 'min', 'dim', 'aug', 'dom7', 'maj7', 'min7', 'None']
@@ -171,6 +171,7 @@ def main():
       orig = ir.InputRepresentation(orig_file)
       sample = ir.InputRepresentation(sample_file)
 
+      # Here we get the descriptions
       orig_desc, sample_desc = orig.get_description(), sample.get_description()
       if len(orig_desc) == 0 or len(sample_desc) == 0:
         print("[warning] empty sample! skipping")
@@ -186,9 +187,27 @@ def main():
 
 
         row['controlled_attribute'] = "none"
+        row['control'] = 0
         
         if len(sample_file.split("__")) == 2:
-          row['controlled_attribute'] = sample_file.split("__")[1]
+          control_info = sample_file.split("__")[1].strip("_").strip(".mid")
+
+          # if control_info[0] == '_':
+          # control_info = control_info[1:]
+
+          control_info_split = control_info.split("_")
+          attribute_name = "_".join(control_info_split[1:-1])
+          control_value = int(control_info_split[-1][1:-1])
+
+          # print(attribute_name)
+          # print(control_value)
+          row['control'] = control_value
+
+
+          # TODO: 2 cols for attribute and controlled value
+          # Solve the metrics calculation thing with the gt
+          # Save to csv
+          row['controlled_attribute'] = attribute_name
 
         meta1, meta2 = meta_stats(g1, ticks_per_beat=orig.pm.resolution), meta_stats(g2, ticks_per_beat=sample.pm.resolution)
         row['pitch_oa'] = overlapping_area(meta1['pitch_mean'], meta1['pitch_std'], meta2['pitch_mean'], meta2['pitch_std'])
