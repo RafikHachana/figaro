@@ -2,12 +2,14 @@ import os, glob
 from statistics import NormalDist
 import pandas as pd
 import numpy as np
+import pretty_midi
+import constants
 
 import input_representation as ir
 
 SAMPLE_DIR = os.getenv('SAMPLE_DIR', './samples')
 OUT_FILE = os.getenv('OUT_FILE', './metrics.csv')
-MAX_SAMPLES = int(os.getenv('MAX_SAMPLES', 1024))
+MAX_SAMPLES = int(os.getenv('MAX_SAMPLES', 50000))
 
 METRICS = [
   'inst_prec', 'inst_rec', 'inst_f1', 
@@ -59,17 +61,36 @@ def read_file(file):
     events = [e for e in events if e]
     return events
 
-def get_chord_groups(desc):
+
+
+def get_chord_groups(desc, transpose=0):
+  pitch_classes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+  
   bars = [1 if 'Bar_' in item else 0 for item in desc]
   bar_ids = np.cumsum(bars) - 1
   groups = [[] for _ in range(bar_ids[-1] + 1)]
   for i, item in enumerate(desc):
     if 'Chord_' in item:
       chord = item.split('_')[-1]
+      if chord != "N:N" and transpose != 0:
+        pitch, quality = chord.split(":")
+        pitch_index = None
+        for i, p in enumerate(pitch_classes):
+            if p == pitch:
+                pitch_index = i
+                break
+
+        new_pitch_index = (pitch_index + transpose)%len(pitch_classes)
+
+        chord = f'{pitch_classes[new_pitch_index]}:{quality}'
       groups[bar_ids[i]].append(chord)
   return groups
 
-def instruments(events):
+def instruments(events, exclude_instr=None):
+  if exclude_instr is not None:
+    # Convert name to int
+    exclude_instr_id = pretty_midi.instrument_name_to_program(exclude_instr)
+    insts = [x for x in insts if x.instrument != exclude_instr_id]
   insts = [128 if item.instrument == 'drum' else int(item.instrument) for item in events[1:-1] if item.name == 'Note']
   insts = np.bincount(insts, minlength=129)
   return (insts > 0).astype(int)
@@ -135,7 +156,7 @@ def sliding_window_metrics(items, start, end, window=1920, step=480, ticks_per_b
     groups.append([start] + notes[start_idx:end_idx] + [start + window])
   return groups
 
-def meta_stats(group, ticks_per_beat=480):
+def meta_stats(group, ticks_per_beat=480, mean_pitch_delta=0, mean_duration_delta=0, mean_velocity_delta=0, note_density_delta=0):
   start, end = group[0], group[-1]
   ns = [item for item in group[1:-1] if item.name == 'Note']
   ns_ = [note for note in ns if note.instrument != 'drum']
@@ -144,10 +165,10 @@ def meta_stats(group, ticks_per_beat=480):
   durs = [(note.end - note.start) / ticks_per_beat for note in ns_]
 
   return {
-    'note_density': len(ns) / ((end - start) / ticks_per_beat),
-    'pitch_mean': np.mean(pitches) if len(pitches) else np.nan,
-    'velocity_mean': np.mean(vels) if len(vels) else np.nan,
-    'duration_mean': np.mean(durs) if len(durs) else np.nan,
+    'note_density': np.clip((len(ns) / ((end - start) / ticks_per_beat)) + note_density_delta, 0, 12),
+    'pitch_mean': np.clip((np.mean(pitches) if len(pitches) else np.nan) + mean_pitch_delta, 0, 128),
+    'velocity_mean': np.clip((np.mean(vels) if len(vels) else np.nan) + mean_velocity_delta, 0, 128),
+    'duration_mean': np.clip((np.mean(durs) if len(durs) else np.nan) + mean_duration_delta, 0, 7),
     'pitch_std': np.std(pitches) if len(pitches) else np.nan,
     'velocity_std': np.std(vels) if len(vels) else np.nan,
     'duration_std': np.std(durs) if len(durs) else np.nan,
@@ -177,19 +198,19 @@ def main():
         print("[warning] empty sample! skipping")
         continue
 
-      chord_groups1 = get_chord_groups(orig_desc)
-      chord_groups2 = get_chord_groups(sample_desc)
 
-      note_density_gt = []
+      mean_pitch_delta = 0
+      mean_duration_delta = 0
+      mean_velocity_delta = 0
+      note_density_delta = 0
 
-      for g1, g2, cg1, cg2 in zip(orig.groups, sample.groups, chord_groups1, chord_groups2):
-        row = pd.DataFrame([{ 'id': sample_id, 'original': orig_file, 'sample': sample_file }])
+      chord_transpose = 0
 
+      control_value = 0
 
-        row['controlled_attribute'] = "none"
-        row['control'] = 0
-        
-        if len(sample_file.split("__")) == 2:
+      attribute_name = "none"
+
+      if len(sample_file.split("__")) == 2:
           control_info = sample_file.split("__")[1].strip("_").strip(".mid")
 
           # if control_info[0] == '_':
@@ -197,19 +218,42 @@ def main():
 
           control_info_split = control_info.split("_")
           attribute_name = "_".join(control_info_split[1:-1])
-          control_value = int(control_info_split[-1][1:-1])
 
-          # print(attribute_name)
-          # print(control_value)
-          row['control'] = control_value
+          if "inst" not in attribute_name:
+            control_value = int(control_info_split[-1][1:-1])
+
+          if "pitch" in attribute_name:
+            mean_pitch_delta = control_value*(128/33)
 
 
-          # TODO: 2 cols for attribute and controlled value
-          # Solve the metrics calculation thing with the gt
-          # Save to csv
-          row['controlled_attribute'] = attribute_name
+          # TODO: Fix this one (logspace)
+          if "duration" in attribute_name:
+            mean_duration_delta = control_value*(128/33)
 
-        meta1, meta2 = meta_stats(g1, ticks_per_beat=orig.pm.resolution), meta_stats(g2, ticks_per_beat=sample.pm.resolution)
+          if "velocity" in attribute_name:
+            mean_duration_delta = control_value*(128/33)
+
+          if "density" in attribute_name:
+            note_density_delta = control_value*(12/33)
+
+          if "chord" in attribute_name:
+            chord_transpose = control_value
+
+      chord_groups1 = get_chord_groups(orig_desc, transpose=chord_transpose)
+      chord_groups2 = get_chord_groups(sample_desc)
+
+      note_density_gt = []
+      for g1, g2, cg1, cg2 in zip(orig.groups, sample.groups, chord_groups1, chord_groups2):
+        row = pd.DataFrame([{ 'id': sample_id, 'original': orig_file, 'sample': sample_file }])
+        
+        
+        row['control'] = control_value
+
+
+        
+        row['controlled_attribute'] = attribute_name
+
+        meta1, meta2 = meta_stats(g1, ticks_per_beat=orig.pm.resolution, mean_duration_delta=mean_duration_delta, mean_pitch_delta=mean_pitch_delta, note_density_delta=note_density_delta, mean_velocity_delta=mean_velocity_delta), meta_stats(g2, ticks_per_beat=sample.pm.resolution)
         row['pitch_oa'] = overlapping_area(meta1['pitch_mean'], meta1['pitch_std'], meta2['pitch_mean'], meta2['pitch_std'])
         row['velocity_oa'] = overlapping_area(meta1['velocity_mean'], meta1['velocity_std'], meta2['velocity_mean'], meta2['velocity_std'])
         row['duration_oa'] = overlapping_area(meta1['duration_mean'], meta1['duration_std'], meta2['duration_mean'], meta2['duration_std'])
@@ -229,7 +273,7 @@ def main():
         row['inst_rec'] = rec
         row['inst_f1'] = f1
 
-        chords1, chords2 = chords(cg1), chords(cg2)
+        chords1, chords2 = chords(cg1, ), chords(cg2)
         prec, rec, f1 = multi_class_accuracy(chords1, chords2)
         row['chord_prec'] = prec
         row['chord_rec'] = rec
