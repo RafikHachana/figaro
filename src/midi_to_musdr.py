@@ -1,5 +1,6 @@
 from miditok import MIDILike
 from miditoolkit import MidiFile
+from input_representation import InputRepresentation
 import os
 
 import glob
@@ -13,14 +14,18 @@ files = glob.glob(f"{PATH}/**/*.mid")
 files = files[:MAX_FILES]
 
 for file_path in files:
-    midi = MidiFile(file_path)
+    # midi = MidiFile(file_path)
 
-    tokenizer = MIDILike()
+    # tokenizer = MIDILike()
 
-    tokens = tokenizer(midi)
+    # tokens = tokenizer(midi)
 
-    print(tokens[0])
-    print(tokens)
+    # print(tokens[0])
+    # print(tokens)
+    rep = InputRepresentation(file_path)
+
+    print(rep.get_remi_events())
+    # print(rep.)
 
 # TODO: Save as CSV here
 
