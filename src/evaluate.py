@@ -224,7 +224,7 @@ def main():
           if "rand" not in attribute_name:
             control_value = int(control_info_split[-1][1:-1])
           elif "inst_(" in sample_file:
-            removed_instrument = "_".join(control_info.split("(")[-1].split(")")[0].split("_")[1:])
+            removed_instrument = "_".join(")".join("(".join(control_info.split("(")[1:]).split(")")[:-1]).split("_")[1:])
           else:
             # Skip the random instr files without the name of the removed instrument
             continue
