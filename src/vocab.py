@@ -101,6 +101,9 @@ class Tokens:
   
   def get_position_tokens():
     return [f'{POSITION_KEY}_{i}' for i in range(MAX_BAR_LENGTH*4*DEFAULT_POS_PER_QUARTER)]
+  
+  def get_pitch_tokens():
+    return [f'{PITCH_KEY}_{i}' for i in range(128)] + [f'{PITCH_KEY}_drum_{i}' for i in range(128)]
 
 class Vocab:
   def __init__(self, counter, specials=[PAD_TOKEN, UNK_TOKEN, BOS_TOKEN, EOS_TOKEN, MASK_TOKEN], unk_token=UNK_TOKEN):
