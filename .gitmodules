@@ -1,3 +1,3 @@
 [submodule "src/MusDr"]
 	path = src/MusDr
-	url = git@github.com:RafikHachana/MusDr.git
+	url = https://github.com/RafikHachana/MusDr.git
