@@ -21,7 +21,7 @@ vocab = RemiVocab()
 def get_event_seq(file):
     rep = InputRepresentation(file)
 
-    return vocab.encode(rep)
+    return vocab.encode(rep.get_remi_events())
 
 def write_report(result_dict, out_csv_file):
   df = pd.DataFrame().from_dict(result_dict)
