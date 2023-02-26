@@ -89,8 +89,8 @@ def get_chord_groups(desc, transpose=0):
 def instruments(events, exclude_instr=None):
   if exclude_instr is not None:
     # Convert name to int
-    exclude_instr_id = pretty_midi.instrument_name_to_program(exclude_instr)
-    insts = [x for x in insts if x.instrument != exclude_instr_id]
+    exclude_instr_id = exclude_instr if exclude_instr == "drum" else str(pretty_midi.instrument_name_to_program(exclude_instr))
+    events = [x for x in events if str(x.instrument) != exclude_instr_id]
   insts = [128 if item.instrument == 'drum' else int(item.instrument) for item in events[1:-1] if item.name == 'Note']
   insts = np.bincount(insts, minlength=129)
   return (insts > 0).astype(int)
