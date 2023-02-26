@@ -1,6 +1,6 @@
 from input_representation import InputRepresentation
 from vocab import Tokens, RemiVocab
-
+import traceback
 import os, sys
 import warnings
 sys.path.append('./MusDr/musdr/')
@@ -86,32 +86,36 @@ if __name__ == "__main__":
   chord_token_ids = vocab.encode(Tokens.get_chord_tokens())
 
   for p in test_pieces:
-    print ('>> now processing: {}'.format(p))
-    seq = get_event_seq(p)
-    result_dict['piece_name'].append(p.replace('\\', '/').split('/')[-1])
-    h1 = compute_piece_pitch_entropy(seq, 1, bar_ev_ids=bar_token_ids, pitch_evs=pitch_token_ids)
-    result_dict['H1'].append(h1)
-    h4 = compute_piece_pitch_entropy(seq, 4, bar_ev_ids=bar_token_ids, pitch_evs=pitch_token_ids)
-    result_dict['H4'].append(h4)
-    gs = compute_piece_groove_similarity(seq, bar_ev_ids=bar_token_ids, pos_evs=position_token_ids, pitch_evs=pitch_token_ids)
-    result_dict['GS'].append(gs)
-    cpi = compute_piece_chord_progression_irregularity(seq, chord_evs=chord_token_ids)
-    result_dict['CPI'].append(cpi)
-    # si_short = compute_structure_indicator(p_sc, args.timescale_bounds[0], args.timescale_bounds[1])
-    # result_dict['SI_short'].append(si_short)
-    # si_mid = compute_structure_indicator(p_sc, args.timescale_bounds[1], args.timescale_bounds[2])
-    # result_dict['SI_mid'].append(si_mid)
-    # si_long = compute_structure_indicator(p_sc, args.timescale_bounds[2])
-    # result_dict['SI_long'].append(si_long)
+    try:
+        print ('>> now processing: {}'.format(p))
+        seq = get_event_seq(p)
+        result_dict['piece_name'].append(p.replace('\\', '/').split('/')[-1])
+        h1 = compute_piece_pitch_entropy(seq, 1, bar_ev_ids=bar_token_ids, pitch_evs=pitch_token_ids)
+        result_dict['H1'].append(h1)
+        h4 = compute_piece_pitch_entropy(seq, 4, bar_ev_ids=bar_token_ids, pitch_evs=pitch_token_ids)
+        result_dict['H4'].append(h4)
+        gs = compute_piece_groove_similarity(seq, bar_ev_ids=bar_token_ids, pos_evs=position_token_ids, pitch_evs=pitch_token_ids)
+        result_dict['GS'].append(gs)
+        cpi = compute_piece_chord_progression_irregularity(seq, chord_evs=chord_token_ids)
+        result_dict['CPI'].append(cpi)
+        # si_short = compute_structure_indicator(p_sc, args.timescale_bounds[0], args.timescale_bounds[1])
+        # result_dict['SI_short'].append(si_short)
+        # si_mid = compute_structure_indicator(p_sc, args.timescale_bounds[1], args.timescale_bounds[2])
+        # result_dict['SI_mid'].append(si_mid)
+        # si_long = compute_structure_indicator(p_sc, args.timescale_bounds[2])
+        # result_dict['SI_long'].append(si_long)
 
-    print ('  1-bar H: {:.3f}'.format(h1))
-    print ('  4-bar H: {:.3f}'.format(h4))
-    print ('  GS: {:.4f}'.format(gs))
-    print ('  CPI: {:.4f}'.format(cpi))
-    # print ('  SI_short: {:.4f}'.format(si_short))
-    # print ('  SI_mid: {:.4f}'.format(si_mid))
-    # print ('  SI_long: {:.4f}'.format(si_long))
-    print ('==========================')
+        print ('  1-bar H: {:.3f}'.format(h1))
+        print ('  4-bar H: {:.3f}'.format(h4))
+        print ('  GS: {:.4f}'.format(gs))
+        print ('  CPI: {:.4f}'.format(cpi))
+        # print ('  SI_short: {:.4f}'.format(si_short))
+        # print ('  SI_mid: {:.4f}'.format(si_mid))
+        # print ('  SI_long: {:.4f}'.format(si_long))
+        print ('==========================')
+    except Exception as e:
+       print(f"Exception: {e}")
+       print(traceback.format_exc())
 
   if len(result_dict):
     write_report(result_dict, args.out_csv)
