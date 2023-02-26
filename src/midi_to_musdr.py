@@ -2,6 +2,7 @@ from miditok import MIDILike
 from miditoolkit import MidiFile
 from input_representation import InputRepresentation
 import os
+from vocab import RemiVocab
 
 import glob
 
@@ -9,9 +10,11 @@ import glob
 PATH = os.getenv('SAMPLES_DIR', './samples')
 MAX_FILES = int(os.getenv('MAX_FILES', 1))
 
-files = glob.glob(f"{PATH}/**/*.mid")
+files = glob.glob(f"{PATH}/*.mid")
 
 files = files[:MAX_FILES]
+
+vocab = RemiVocab()
 
 for file_path in files:
     # midi = MidiFile(file_path)
@@ -25,6 +28,7 @@ for file_path in files:
     rep = InputRepresentation(file_path)
 
     print(rep.get_remi_events())
+    print(vocab.encode(rep.get_remi_events()))
     # print(rep.)
 
 # TODO: Save as CSV here
