@@ -20,7 +20,7 @@ METRICS = [
   'groove_crossent', 'groove_kldiv', 'groove_sim',
 ]
 
-DF_KEYS = ['id', 'original', 'sample', 'controlled_attribute', 'control'] + METRICS
+DF_KEYS = ['id', 'original', 'sample', 'controlled_attribute', 'control', 'removed_instrument'] + METRICS
 
 keys = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 qualities = ['maj', 'min', 'dim', 'aug', 'dom7', 'maj7', 'min7', 'None']
@@ -210,6 +210,8 @@ def main():
 
       attribute_name = "none"
 
+      removed_instrument = None
+
       if len(sample_file.split("__")) == 2:
           control_info = sample_file.split("__")[1].strip("_").strip(".mid")
 
@@ -221,6 +223,11 @@ def main():
 
           if "rand" not in attribute_name:
             control_value = int(control_info_split[-1][1:-1])
+          elif "inst_(" in sample_file:
+            removed_instrument = "_".join(control_info_split.split("(")[-1].split(")")[0].split("_")[1:])
+          else:
+            # Skip the random instr files without the name of the removed instrument
+            continue
 
           if "pitch" in attribute_name:
             mean_pitch_delta = control_value*(128/33)
@@ -252,6 +259,7 @@ def main():
 
         
         row['controlled_attribute'] = attribute_name
+        row['removed_instrument'] = removed_instrument or ""
 
         meta1, meta2 = meta_stats(g1, ticks_per_beat=orig.pm.resolution, mean_duration_delta=mean_duration_delta, mean_pitch_delta=mean_pitch_delta, note_density_delta=note_density_delta, mean_velocity_delta=mean_velocity_delta), meta_stats(g2, ticks_per_beat=sample.pm.resolution)
         row['pitch_oa'] = overlapping_area(meta1['pitch_mean'], meta1['pitch_std'], meta2['pitch_mean'], meta2['pitch_std'])
@@ -267,13 +275,13 @@ def main():
         ts1, ts2 = f"{ts1.numerator}/{ts1.denominator}", f"{ts2.numerator}/{ts2.denominator}"
         row['time_sig_acc'] = 1 if ts1 == ts2 else 0
 
-        inst1, inst2 = instruments(g1), instruments(g2)
+        inst1, inst2 = instruments(g1, exclude_instr=removed_instrument), instruments(g2)
         prec, rec, f1 = multi_class_accuracy(inst1, inst2)
         row['inst_prec'] = prec
         row['inst_rec'] = rec
         row['inst_f1'] = f1
 
-        chords1, chords2 = chords(cg1, ), chords(cg2)
+        chords1, chords2 = chords(cg1), chords(cg2)
         prec, rec, f1 = multi_class_accuracy(chords1, chords2)
         row['chord_prec'] = prec
         row['chord_rec'] = rec
