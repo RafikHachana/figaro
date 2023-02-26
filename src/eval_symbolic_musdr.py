@@ -114,8 +114,15 @@ if __name__ == "__main__":
         # print ('  SI_long: {:.4f}'.format(si_long))
         print ('==========================')
     except Exception as e:
-       print(f"Exception: {e}")
-       print(traceback.format_exc())
+        print(f"Exception: {e}")
+        print(traceback.format_exc())
+        # Remove any added info to the list
+
+        min_length = len(result_dict['CPI'])
+
+        for k in result_dict:
+           while len(result_dict[k]) > min_length:
+              result_dict[k] = result_dict[k][:-1]
 
   if len(result_dict):
     write_report(result_dict, args.out_csv)
