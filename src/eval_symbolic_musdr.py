@@ -48,13 +48,26 @@ if __name__ == "__main__":
     '-o', '--out_csv',
     required=True, type=str, help='path to output file for results.'  
   )
+
+  parser.add_argument(
+    '-n', '--n_files',
+    required=True, type=int, help='maximum number of files'  
+  )
 #   parser.add_argument(
 #     '--timescale_bounds',
 #     nargs='+', type=int, default=[3, 8, 15], help='timescale bounds (in secs, [short, mid, long]) for structureness indicators.'
 #   )
+
+#   parser.add_argument(
+#         '--timescale_bounds',
+#         nargs='+', type=int, default=[3, 8, 15], help='timescale bounds (in secs, [short, mid, long]) for structureness indicators.'
+#   )
   args = parser.parse_args()
 
   test_pieces = sorted( glob(os.path.join(args.symbolic_dir, '*')) )
+
+  if args.n_files < len(test_pieces):
+    test_pieces = test_pieces[:args.n_files]
 #   test_pieces_scplot = sorted( glob(os.path.join(args.scplot_dir, '*')) )
 #   print (test_pieces, test_pieces_scplot)
   result_dict = {
