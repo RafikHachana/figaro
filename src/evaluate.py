@@ -185,134 +185,137 @@ def main():
 
   metrics = pd.DataFrame()
   for sample_id, group in enumerate(file_groups):
+    try:
+      micro_metrics = pd.DataFrame()
+      for orig_file, sample_file in group:
+        print(f"[info] Group {sample_id+1}/{len(file_groups)} | original: {orig_file} | sample: {sample_file}")
+        orig = ir.InputRepresentation(orig_file)
+        sample = ir.InputRepresentation(sample_file)
 
-    micro_metrics = pd.DataFrame()
-    for orig_file, sample_file in group:
-      print(f"[info] Group {sample_id+1}/{len(file_groups)} | original: {orig_file} | sample: {sample_file}")
-      orig = ir.InputRepresentation(orig_file)
-      sample = ir.InputRepresentation(sample_file)
+        # Here we get the descriptions
+        orig_desc, sample_desc = orig.get_description(), sample.get_description()
+        if len(orig_desc) == 0 or len(sample_desc) == 0:
+          print("[warning] empty sample! skipping")
+          continue
 
-      # Here we get the descriptions
-      orig_desc, sample_desc = orig.get_description(), sample.get_description()
-      if len(orig_desc) == 0 or len(sample_desc) == 0:
-        print("[warning] empty sample! skipping")
+
+        mean_pitch_delta = 0
+        mean_duration_delta = 0
+        mean_velocity_delta = 0
+        note_density_delta = 0
+
+        chord_transpose = 0
+
+        control_value = 0
+
+        attribute_name = "none"
+
+        removed_instrument = None
+
+        if len(sample_file.split("__")) == 2:
+            control_info = sample_file.split("__")[1].strip("_").strip(".mid")
+
+            # if control_info[0] == '_':
+            # control_info = control_info[1:]
+
+            control_info_split = control_info.split("_")
+            attribute_name = "_".join(control_info_split[1:-1])
+
+            if "rand" not in attribute_name:
+              control_value = int(control_info_split[-1][1:-1])
+            elif "inst_(" in sample_file:
+              removed_instrument = "_".join(")".join("(".join(control_info.split("(")[1:]).split(")")[:-1]).split("_")[1:])
+            else:
+              # Skip the random instr files without the name of the removed instrument
+              continue
+
+            if "pitch" in attribute_name:
+              mean_pitch_delta = control_value*(128/33)
+
+
+            # TODO: Fix this one (logspace)
+            if "duration" in attribute_name:
+              mean_duration_delta = control_value*(128/33)
+
+            if "velocity" in attribute_name:
+              mean_duration_delta = control_value*(128/33)
+
+            if "density" in attribute_name:
+              note_density_delta = control_value*(12/33)
+
+            if "chord" in attribute_name:
+              chord_transpose = control_value
+
+        chord_groups1 = get_chord_groups(orig_desc, transpose=chord_transpose)
+        chord_groups2 = get_chord_groups(sample_desc)
+
+        note_density_gt = []
+        for g1, g2, cg1, cg2 in zip(orig.groups, sample.groups, chord_groups1, chord_groups2):
+          row = pd.DataFrame([{ 'id': sample_id, 'original': orig_file, 'sample': sample_file }])
+          
+          
+          row['control'] = control_value
+
+
+          
+          row['controlled_attribute'] = attribute_name
+          row['removed_instrument'] = removed_instrument or ""
+
+          meta1, meta2 = meta_stats(g1, ticks_per_beat=orig.pm.resolution, mean_duration_delta=mean_duration_delta, mean_pitch_delta=mean_pitch_delta, note_density_delta=note_density_delta, mean_velocity_delta=mean_velocity_delta), meta_stats(g2, ticks_per_beat=sample.pm.resolution)
+          row['pitch_oa'] = overlapping_area(meta1['pitch_mean'], meta1['pitch_std'], meta2['pitch_mean'], meta2['pitch_std'])
+          row['velocity_oa'] = overlapping_area(meta1['velocity_mean'], meta1['velocity_std'], meta2['velocity_mean'], meta2['velocity_std'])
+          row['duration_oa'] = overlapping_area(meta1['duration_mean'], meta1['duration_std'], meta2['duration_mean'], meta2['duration_std'])
+          row['note_density_abs_err'] = np.abs(meta1['note_density'] - meta2['note_density'])
+          row['mean_pitch_abs_err'] = np.abs(meta1['pitch_mean'] - meta2['pitch_mean'])
+          row['mean_velocity_abs_err'] = np.abs(meta1['velocity_mean'] - meta2['velocity_mean'])
+          row['mean_duration_abs_err'] = np.abs(meta1['duration_mean'] - meta2['duration_mean'])
+          note_density_gt.append(meta1['note_density'])
+
+          ts1, ts2 = orig._get_time_signature(g1[0]), sample._get_time_signature(g2[0])
+          ts1, ts2 = f"{ts1.numerator}/{ts1.denominator}", f"{ts2.numerator}/{ts2.denominator}"
+          row['time_sig_acc'] = 1 if ts1 == ts2 else 0
+
+          inst1, inst2 = instruments(g1, exclude_instr=removed_instrument), instruments(g2)
+          prec, rec, f1 = multi_class_accuracy(inst1, inst2)
+          row['inst_prec'] = prec
+          row['inst_rec'] = rec
+          row['inst_f1'] = f1
+
+          chords1, chords2 = chords(cg1), chords(cg2)
+          prec, rec, f1 = multi_class_accuracy(chords1, chords2)
+          row['chord_prec'] = prec
+          row['chord_rec'] = rec
+          row['chord_f1'] = f1
+
+          c1, c2 = chroma(g1), chroma(g2)
+          row['chroma_crossent'] = cross_entropy(c1, c2)
+          row['chroma_kldiv'] = kl_divergence(c1, c2)
+          row['chroma_sim'] = cosine_sim(c1, c2)
+
+          ppb = max(orig._get_positions_per_bar(g1[0]), sample._get_positions_per_bar(g2[0]))
+          tpb = max(orig._get_ticks_per_bar(g1[0]), sample._get_ticks_per_bar(g2[0]))
+          r1 = groove(g1, start=g1[0], pos_per_bar=ppb, ticks_per_bar=tpb)
+          r2 = groove(g2, start=g2[0], pos_per_bar=ppb, ticks_per_bar=tpb)
+          row['groove_crossent'] = cross_entropy(r1, r2)
+          row['groove_kldiv'] = kl_divergence(r1, r2)
+          row['groove_sim'] = cosine_sim(r1, r2)
+
+          micro_metrics = pd.concat([micro_metrics, row], ignore_index=True)
+      if len(micro_metrics) == 0:
         continue
 
+      nd_mean = np.mean(note_density_gt)
+      micro_metrics['note_density_nsq_err'] = micro_metrics['note_density_abs_err']**2 / nd_mean**2
 
-      mean_pitch_delta = 0
-      mean_duration_delta = 0
-      mean_velocity_delta = 0
-      note_density_delta = 0
+      metrics = pd.concat([metrics, micro_metrics], ignore_index=True)
 
-      chord_transpose = 0
+      micro_avg = micro_metrics.mean(numeric_only=True)
+      print("[info] Group {}: inst_f1={:.2f} | chord_f1={:.2f} | pitch_oa={:.2f} | vel_oa={:.2f} | dur_oa={:.2f} | chroma_sim={:.2f} | groove_sim={:.2f}".format(
+        sample_id+1, micro_avg['inst_f1'], micro_avg['chord_f1'], micro_avg['pitch_oa'], micro_avg['velocity_oa'], micro_avg['duration_oa'], micro_avg['chroma_sim'], micro_avg['groove_sim']
+      ))
 
-      control_value = 0
-
-      attribute_name = "none"
-
-      removed_instrument = None
-
-      if len(sample_file.split("__")) == 2:
-          control_info = sample_file.split("__")[1].strip("_").strip(".mid")
-
-          # if control_info[0] == '_':
-          # control_info = control_info[1:]
-
-          control_info_split = control_info.split("_")
-          attribute_name = "_".join(control_info_split[1:-1])
-
-          if "rand" not in attribute_name:
-            control_value = int(control_info_split[-1][1:-1])
-          elif "inst_(" in sample_file:
-            removed_instrument = "_".join(")".join("(".join(control_info.split("(")[1:]).split(")")[:-1]).split("_")[1:])
-          else:
-            # Skip the random instr files without the name of the removed instrument
-            continue
-
-          if "pitch" in attribute_name:
-            mean_pitch_delta = control_value*(128/33)
-
-
-          # TODO: Fix this one (logspace)
-          if "duration" in attribute_name:
-            mean_duration_delta = control_value*(128/33)
-
-          if "velocity" in attribute_name:
-            mean_duration_delta = control_value*(128/33)
-
-          if "density" in attribute_name:
-            note_density_delta = control_value*(12/33)
-
-          if "chord" in attribute_name:
-            chord_transpose = control_value
-
-      chord_groups1 = get_chord_groups(orig_desc, transpose=chord_transpose)
-      chord_groups2 = get_chord_groups(sample_desc)
-
-      note_density_gt = []
-      for g1, g2, cg1, cg2 in zip(orig.groups, sample.groups, chord_groups1, chord_groups2):
-        row = pd.DataFrame([{ 'id': sample_id, 'original': orig_file, 'sample': sample_file }])
-        
-        
-        row['control'] = control_value
-
-
-        
-        row['controlled_attribute'] = attribute_name
-        row['removed_instrument'] = removed_instrument or ""
-
-        meta1, meta2 = meta_stats(g1, ticks_per_beat=orig.pm.resolution, mean_duration_delta=mean_duration_delta, mean_pitch_delta=mean_pitch_delta, note_density_delta=note_density_delta, mean_velocity_delta=mean_velocity_delta), meta_stats(g2, ticks_per_beat=sample.pm.resolution)
-        row['pitch_oa'] = overlapping_area(meta1['pitch_mean'], meta1['pitch_std'], meta2['pitch_mean'], meta2['pitch_std'])
-        row['velocity_oa'] = overlapping_area(meta1['velocity_mean'], meta1['velocity_std'], meta2['velocity_mean'], meta2['velocity_std'])
-        row['duration_oa'] = overlapping_area(meta1['duration_mean'], meta1['duration_std'], meta2['duration_mean'], meta2['duration_std'])
-        row['note_density_abs_err'] = np.abs(meta1['note_density'] - meta2['note_density'])
-        row['mean_pitch_abs_err'] = np.abs(meta1['pitch_mean'] - meta2['pitch_mean'])
-        row['mean_velocity_abs_err'] = np.abs(meta1['velocity_mean'] - meta2['velocity_mean'])
-        row['mean_duration_abs_err'] = np.abs(meta1['duration_mean'] - meta2['duration_mean'])
-        note_density_gt.append(meta1['note_density'])
-
-        ts1, ts2 = orig._get_time_signature(g1[0]), sample._get_time_signature(g2[0])
-        ts1, ts2 = f"{ts1.numerator}/{ts1.denominator}", f"{ts2.numerator}/{ts2.denominator}"
-        row['time_sig_acc'] = 1 if ts1 == ts2 else 0
-
-        inst1, inst2 = instruments(g1, exclude_instr=removed_instrument), instruments(g2)
-        prec, rec, f1 = multi_class_accuracy(inst1, inst2)
-        row['inst_prec'] = prec
-        row['inst_rec'] = rec
-        row['inst_f1'] = f1
-
-        chords1, chords2 = chords(cg1), chords(cg2)
-        prec, rec, f1 = multi_class_accuracy(chords1, chords2)
-        row['chord_prec'] = prec
-        row['chord_rec'] = rec
-        row['chord_f1'] = f1
-
-        c1, c2 = chroma(g1), chroma(g2)
-        row['chroma_crossent'] = cross_entropy(c1, c2)
-        row['chroma_kldiv'] = kl_divergence(c1, c2)
-        row['chroma_sim'] = cosine_sim(c1, c2)
-
-        ppb = max(orig._get_positions_per_bar(g1[0]), sample._get_positions_per_bar(g2[0]))
-        tpb = max(orig._get_ticks_per_bar(g1[0]), sample._get_ticks_per_bar(g2[0]))
-        r1 = groove(g1, start=g1[0], pos_per_bar=ppb, ticks_per_bar=tpb)
-        r2 = groove(g2, start=g2[0], pos_per_bar=ppb, ticks_per_bar=tpb)
-        row['groove_crossent'] = cross_entropy(r1, r2)
-        row['groove_kldiv'] = kl_divergence(r1, r2)
-        row['groove_sim'] = cosine_sim(r1, r2)
-
-        micro_metrics = pd.concat([micro_metrics, row], ignore_index=True)
-    if len(micro_metrics) == 0:
+    except:
       continue
-
-    nd_mean = np.mean(note_density_gt)
-    micro_metrics['note_density_nsq_err'] = micro_metrics['note_density_abs_err']**2 / nd_mean**2
-
-    metrics = pd.concat([metrics, micro_metrics], ignore_index=True)
-
-    micro_avg = micro_metrics.mean(numeric_only=True)
-    print("[info] Group {}: inst_f1={:.2f} | chord_f1={:.2f} | pitch_oa={:.2f} | vel_oa={:.2f} | dur_oa={:.2f} | chroma_sim={:.2f} | groove_sim={:.2f}".format(
-      sample_id+1, micro_avg['inst_f1'], micro_avg['chord_f1'], micro_avg['pitch_oa'], micro_avg['velocity_oa'], micro_avg['duration_oa'], micro_avg['chroma_sim'], micro_avg['groove_sim']
-    ))
   
   os.makedirs(os.path.dirname(OUT_FILE), exist_ok=True)
   metrics.to_csv(OUT_FILE)
