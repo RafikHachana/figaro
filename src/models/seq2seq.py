@@ -78,7 +78,8 @@ class Seq2SeqModule(pl.LightningModule):
       num_attention_heads=num_attention_heads,
       intermediate_size=intermediate_size,
       max_position_embeddings=1024,
-      position_embedding_type='relative_key_query'
+      position_embedding_type='relative_key_query',
+      output_attentions=True
     )
     decoder_config = BertConfig(
       vocab_size=1,
@@ -88,7 +89,8 @@ class Seq2SeqModule(pl.LightningModule):
       num_attention_heads=num_attention_heads,
       intermediate_size=intermediate_size,
       max_position_embeddings=1024,
-      position_embedding_type='relative_key_query'
+      position_embedding_type='relative_key_query',
+      output_attentions=True
     )
     config = EncoderDecoderConfig.from_encoder_decoder_configs(encoder_config, decoder_config)
     self.transformer = EncoderDecoderModel(config)
@@ -160,6 +162,7 @@ class Seq2SeqModule(pl.LightningModule):
 
     out = self.transformer.encoder(inputs_embeds=z_emb, output_hidden_states=True)
     encoder_hidden = out.hidden_states[-1]
+    print(out.__dict__)
     return encoder_hidden
 
   def decode(self, x, labels=None, bar_ids=None, position_ids=None, encoder_hidden_states=None, return_hidden=False):
