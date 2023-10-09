@@ -7,7 +7,7 @@ import torch.nn.functional as F
 import math
 import numpy as np
 import random
-from datasets import MidiDataModule
+from src.my_datasets import MidiDataModule
 from vocab import RemiVocab
 from constants import PAD_TOKEN, BOS_TOKEN, EOS_TOKEN, MASK_TOKEN
 
