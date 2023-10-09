@@ -8,7 +8,7 @@ from torch.utils.data.dataloader import DataLoader
 
 from models.vae import VqVaeModule
 from constants import MASK_TOKEN
-from src.my_datasets import MidiDataset, SeqCollator
+from my_datasets import MidiDataset, SeqCollator
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
