@@ -6,7 +6,7 @@ import torch
 import random
 from torch.utils.data import DataLoader
 
-from models.vae import VqVaeModule
+# from models.vae import VqVaeModule
 from models.seq2seq import Seq2SeqModule
 from datasets import MidiDataset, SeqCollator
 from utils import description_control_iterator, medley_iterator
