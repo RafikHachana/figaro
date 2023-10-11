@@ -79,7 +79,7 @@ class Seq2SeqModule(pl.LightningModule):
       intermediate_size=intermediate_size,
       max_position_embeddings=1024,
       position_embedding_type='relative_key_query',
-      output_attentions=False
+      output_attentions=True
     )
     decoder_config = BertConfig(
       vocab_size=1,
@@ -90,7 +90,7 @@ class Seq2SeqModule(pl.LightningModule):
       intermediate_size=intermediate_size,
       max_position_embeddings=1024,
       position_embedding_type='relative_key_query',
-      output_attentions=False
+      output_attentions=True
     )
     config = EncoderDecoderConfig.from_encoder_decoder_configs(encoder_config, decoder_config)
     self.transformer = EncoderDecoderModel(config)
