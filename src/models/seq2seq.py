@@ -164,9 +164,12 @@ class Seq2SeqModule(pl.LightningModule):
     encoder_hidden = out.hidden_states[-1]
     print(len(out.attentions))
 
-    for ind, x in out.attentions:
+
+
+    for ind, x in enumerate(out.attentions):
       print(x.shape)
       torch.save(x, f"attention_{ind}.pt")
+
     return encoder_hidden
 
   def decode(self, x, labels=None, bar_ids=None, position_ids=None, encoder_hidden_states=None, return_hidden=False):
