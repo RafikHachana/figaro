@@ -162,7 +162,7 @@ class Seq2SeqModule(pl.LightningModule):
 
     out = self.transformer.encoder(inputs_embeds=z_emb, output_hidden_states=True)
     encoder_hidden = out.hidden_states[-1]
-    print(out.__dict__)
+    print(out.attentions.shape())
     return encoder_hidden
 
   def decode(self, x, labels=None, bar_ids=None, position_ids=None, encoder_hidden_states=None, return_hidden=False):
