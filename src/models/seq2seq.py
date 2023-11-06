@@ -166,6 +166,9 @@ class Seq2SeqModule(pl.LightningModule):
 
 
 
+    torch.save(z, f"input.pt")
+    with open("input.txt", "w") as f:
+      f.write(str(self.vocab.decode(z)))
     for ind, x in enumerate(out.attentions):
       print(x.shape)
       torch.save(x, f"attention_{ind}.pt")
