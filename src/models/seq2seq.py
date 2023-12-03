@@ -372,7 +372,7 @@ class Seq2SeqModule(pl.LightningModule):
       z, desc_bar_ids = None, None
       
 
-    is_done = torch.zeros(batch_size, dtype=torch.bool, device=self.device)
+    is_done = torch.zeros(batch_size, dtype=torch.bool).to(self.device)
 
     # Precompute encoder hidden states for cross-attention
     if self.description_flavor == 'latent':
@@ -380,7 +380,7 @@ class Seq2SeqModule(pl.LightningModule):
     else:
       encoder_hidden_states = None
 
-    curr_bars = torch.zeros(batch_size, device=self.device).fill_(-1)
+    curr_bars = torch.zeros(batch_size).fill_(-1).to(self.device)
     # Sample using decoder until max_length is reached or all sequences are done
     start_time = time.time()
     for i in tqdm(range(curr_len - 1, max_length)):
@@ -401,8 +401,8 @@ class Seq2SeqModule(pl.LightningModule):
         curr_bars = next_bars
 
         if bars_changed:
-          z_ = torch.zeros(batch_size, self.context_size, dtype=torch.int, device=self.device)
-          desc_bar_ids_ = torch.zeros(batch_size, self.context_size, dtype=torch.int, device=self.device)
+          z_ = torch.zeros(batch_size, self.context_size, dtype=torch.int).to(self.device)
+          desc_bar_ids_ = torch.zeros(batch_size, self.context_size, dtype=torch.int).to(self.device)
 
           for j in range(batch_size):
             curr_bar = bar_ids_[j, 0]
@@ -501,4 +501,107 @@ class Seq2SeqModule(pl.LightningModule):
       'bar_ids': bar_ids,
       'position_ids': position_ids
     }
+  
+
+  @torch.no_grad()
+  def get_first_encoded_state(self, batch, 
+    max_length=256, 
+    max_bars=-1,
+    temp=0.8,
+    pad_token=PAD_TOKEN, 
+    eos_token=EOS_TOKEN,
+    verbose=0,
+  ):
+    
+    # Setup and parsing arguments
+
+    # def is_a_bar_token_id(token):
+    #   # print(bar_token_ids)
+    #   return token >= bar_token_ids[0] and token <= bar_token_ids[-1]
+    
+    # def get_position(token_id):
+    #   if is_a_bar_token_id(token_id):
+    #     return 0
+      
+    #   # for ind, tk in enumerate(position_token_ids):
+    #   #   if tk == token_id:
+    #   #     return ind
+
+    #   if token_id >= position_token_ids[0] and token_id <= position_token_ids[-1]:
+    #     return token_id - position_token_ids[0]
+        
+    #   return None
+
+    bar_token_ids = self.vocab.encode(Tokens.get_bar_tokens())
+    position_token_ids = self.vocab.encode(Tokens.get_position_tokens())
+
+    print(bar_token_ids)
+    print(position_token_ids)
+
+    pad_token_id = self.vocab.to_i(pad_token)
+    eos_token_id = self.vocab.to_i(eos_token)
+
+    batch_size, curr_len = batch['input_ids'].shape
+
+    i = curr_len - 1
+
+    x = batch['input_ids'].to(self.device)
+    bar_ids = batch['bar_ids'].to(self.device)
+    position_ids = batch['position_ids'].to(self.device)
+    assert x.shape[:2] == bar_ids.shape and x.shape[:2] == position_ids.shape, f"Input, bar and position ids weren't of compatible shapes: {x.shape}, {bar_ids.shape}, {position_ids.shape}"
+    
+    if self.description_flavor == 'both':
+      z = { 'latents': batch['latents'], 'description': batch['description'] }
+      desc_bar_ids = batch['desc_bar_ids']
+    elif self.description_flavor == 'latent':
+      z, desc_bar_ids = batch['latents'], None
+    elif self.description_flavor == 'description':
+      z, desc_bar_ids = batch['description'], batch['desc_bar_ids']
+    else:
+      z, desc_bar_ids = None, None
+
+    curr_bars = torch.zeros(batch_size).fill_(-1).to(self.device)
+    # Sample using decoder until max_length is reached or all sequences are done
+    for i in tqdm(range(curr_len - 1, max_length)):
+      # print(f"\r{i+1}/{max_length}", end='')
+      x_ = x[:, -self.context_size:].to(self.device)
+      bar_ids_ = bar_ids[:, -self.context_size:].to(self.device)
+      position_ids_ = position_ids[:, -self.context_size:].to(self.device)
+
+      # Description scrolling
+      if self.description_flavor in ['description', 'both']:
+        if self.description_flavor == 'description':
+          desc = z
+        else:
+          desc = z['description']
+        
+        next_bars = bar_ids_[:, 0]
+        bars_changed = not (next_bars == curr_bars).all()
+        curr_bars = next_bars
+
+        if bars_changed:
+          z_ = torch.zeros(batch_size, self.context_size, dtype=torch.int).to(self.device)
+          desc_bar_ids_ = torch.zeros(batch_size, self.context_size, dtype=torch.int).to(self.device)
+
+          for j in range(batch_size):
+            curr_bar = bar_ids_[j, 0]
+            indices = torch.nonzero(desc_bar_ids[j] == curr_bar)
+            if indices.size(0) > 0:
+              idx = indices[0, 0]
+            else:
+              idx = desc.size(1) - 1
+
+            offset = min(self.context_size, desc.size(1) - idx)
+
+            z_[j, :offset] = desc[j, idx:idx+offset]
+            desc_bar_ids_[j, :offset] = desc_bar_ids[j, idx:idx+offset]
+
+          z_, desc_bar_ids_ = z_.to(self.device), desc_bar_ids_.to(self.device)
+
+          if self.description_flavor == 'both':
+            z_ = { 'description': z_, 'latents': z['latents'] }
+          
+          return self.encode(z_, desc_bar_ids_), z_
+
+      
 

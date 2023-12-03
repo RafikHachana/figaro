@@ -32,7 +32,7 @@ CHECKPOINT = os.getenv('CHECKPOINT', None)
 VAE_CHECKPOINT = os.getenv('VAE_CHECKPOINT', None)
 BATCH_SIZE = int(os.getenv('BATCH_SIZE', 1))
 VERBOSE = int(os.getenv('VERBOSE', 2))
-DATASET_PATH = int(os.getenv('DATASET_PATH', "."))
+DATASET_PATH = os.getenv('DATASET_PATH', ".")
 
 # Added for our experiment
 ALTER_DESCRIPTION = os.getenv('ALTER_DESCRIPTION', 'False') == 'True'
@@ -59,7 +59,7 @@ def save_dataset_element(model, batch,
     max_len = min(max_len, initial_context + max_iter)
   if verbose:
     print(f"Generating sequence ({initial_context} initial / {max_len} max length / {max_bars} max bars / {batch_size} batch size)")
-  hidden_state = model.get_first_encoded_state(batch_, max_length=max_len, max_bars=max_bars, verbose=verbose//2)
+  hidden_state, desc = model.get_first_encoded_state(batch_, max_length=max_len, max_bars=max_bars, verbose=verbose//2)
 
   sample_id = str(uuid.uuid4())
 
@@ -68,7 +68,7 @@ def save_dataset_element(model, batch,
 
 
   torch.save(hidden_state.cpu(), os.path.join(DATASET_PATH, f"{sample_id}_hidden.pt"))
-  torch.save(batch_['description'].cpu(), os.path.join(DATASET_PATH, f"{sample_id}_desc.pt"))
+  torch.save(desc.cpu(), os.path.join(DATASET_PATH, f"{sample_id}_desc.pt"))
 
   
 
