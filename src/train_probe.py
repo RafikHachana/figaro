@@ -191,12 +191,15 @@ def get_all_uuids(files):
 
     return list(uuids)
 
-def filter_description(description, tokens_to_include: list, max_length=10):
+def filter_description(descriptions, tokens_to_include: list, max_length=10):
     result = []
-    for val in description:
-        if val.item() in tokens_to_include:
-            result.append(val.item())
-    return torch.tensor(result[:max_length])
+    for description in descriptions:
+        tmp = []
+        for val in description:
+            if val.item() in tokens_to_include:
+                tmp.append(val.item())
+        result.append(tmp[:max_length])
+    return torch.tensor(result)
 
 if __name__ == "__main__":
     dataset_files = os.listdir(DATASET_PATH)
