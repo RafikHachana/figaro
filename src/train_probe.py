@@ -19,7 +19,7 @@ from torch.optim.lr_scheduler import LambdaLR
 from torch.utils.data.dataloader import DataLoader
 from matplotlib import pyplot as plt
 from models.probe import ProbeClassificationTwoLayer
-from vocab import DescriptionVocab
+from vocab import DescriptionVocab, Tokens
 from torch.utils.data import Dataset
 
 logger = logging.getLogger(__name__)
@@ -212,6 +212,14 @@ if __name__ == "__main__":
 
     descriptions = torch.tensor(descriptions)
     hidden_states = torch.tensor(hidden_states)
+
+    vocab = DescriptionVocab()
+
+    chord_tokens = torch.tensor(vocab.encode(Tokens.get_chord_tokens()))
+
+    for description in descriptions:
+        filtered = description[torch.isin(description, chord_tokens)]
+        print("Number of chord tokens", filtered.shape)
 
     print("HIDDEN ALL SHAPE", hidden_states.shape)
     print("DESCRIPTION ALL SHAPE", descriptions.shape)
