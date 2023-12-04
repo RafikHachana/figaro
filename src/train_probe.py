@@ -57,6 +57,7 @@ class TrainerConfig:
             setattr(self, k, v)
 
 DATASET_PATH = os.getenv('DATASET_PATH', ".")
+TOKEN_CLASS_OF_INTEREST = os.getenv('TOKEN_CLASS_OF_INTEREST', "chords")
 
 
 class Trainer:
@@ -190,6 +191,13 @@ def get_all_uuids(files):
 
     return list(uuids)
 
+def filter_description(description, tokens_to_include: list, max_length=10):
+    result = []
+    for val in description:
+        if val in tokens_to_include:
+            result.append(val.item())
+    return torch.tensor(result[:max_length])
+
 if __name__ == "__main__":
     dataset_files = os.listdir(DATASET_PATH)
     print(dataset_files)
@@ -199,27 +207,31 @@ if __name__ == "__main__":
 
     device = torch.cuda.current_device()
 
-
+    vocab = DescriptionVocab()
+    max_length = 15
+    if TOKEN_CLASS_OF_INTEREST == 'chords':
+        filtering_tokens = vocab.encode(Tokens.get_chord_tokens())
+    elif TOKEN_CLASS_OF_INTEREST == "instruments":
+        filtering_tokens = vocab.encode(Tokens.get_instrument_tokens())
+    else:
+        filtering_tokens = vocab.encode(Tokens.get_time_signature_tokens())
+    
     # Load the dataset
     descriptions = None
     hidden_states = None
     for file_id in tqdm(ids):
-        desc_batch = torch.load(os.path.join(DATASET_PATH, f"{file_id}_desc.pt"))
+        desc_batch = filter_description(torch.load(os.path.join(DATASET_PATH, f"{file_id}_desc.pt")), tokens_to_include=filtering_tokens, max_length=max_length)
         hidden_batch = torch.load(os.path.join(DATASET_PATH, f"{file_id}_hidden.pt"))
 
         descriptions = torch.cat([descriptions, desc_batch]) if descriptions is not None else desc_batch
         hidden_states = torch.cat([hidden_states, torch.flatten(hidden_batch, start_dim=1)]) if hidden_states is not None else torch.flatten(hidden_batch, start_dim=1)
 
-    descriptions = torch.tensor(descriptions)
-    hidden_states = torch.tensor(hidden_states)
 
-    vocab = DescriptionVocab()
+    # chord_tokens = torch.tensor(vocab.encode(Tokens.get_chord_tokens()))
 
-    chord_tokens = torch.tensor(vocab.encode(Tokens.get_chord_tokens()))
-
-    for description in descriptions:
-        filtered = description[torch.isin(description, chord_tokens)]
-        print("Number of chord tokens", filtered.shape)
+    # for description in descriptions:
+    #     filtered = description[torch.isin(description, chord_tokens)]
+    #     print("Number of chord tokens", filtered.shape)
 
     print("HIDDEN ALL SHAPE", hidden_states.shape)
     print("DESCRIPTION ALL SHAPE", descriptions.shape)
@@ -228,8 +240,8 @@ if __name__ == "__main__":
 
     model = ProbeClassificationTwoLayer(
         device,
-        probe_class=len(DescriptionVocab().tokens),
-        num_task=256,
+        probe_class=len(filtering_tokens),
+        num_task=max_length,
         mid_dim=256,
         input_dim=256*512
     )
