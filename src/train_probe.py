@@ -20,7 +20,7 @@ from torch.utils.data.dataloader import DataLoader
 from matplotlib import pyplot as plt
 from models.probe import ProbeClassificationTwoLayer
 from vocab import DescriptionVocab, Tokens
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, random_split
 
 from constants import (
   DEFAULT_NOTE_DENSITY_BINS,
@@ -265,6 +265,8 @@ if __name__ == "__main__":
 
     dataset = ProbingDataset(hidden_states, descriptions)
 
+    train_dataset, test_dataset = random_split(dataset, [int(0.8 * len(dataset)), len(dataset) - int(0.8 * len(dataset))])
+
     model = ProbeClassificationTwoLayer(
         device,
         probe_class=len(filtering_tokens),
@@ -272,7 +274,7 @@ if __name__ == "__main__":
         mid_dim=256,
         input_dim=256*512
     )
-    trainer = Trainer(model, dataset, None, TrainerConfig())
+    trainer = Trainer(model, train_dataset, test_dataset, TrainerConfig())
 
     trainer.train()
 
