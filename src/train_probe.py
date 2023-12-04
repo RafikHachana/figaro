@@ -22,6 +22,22 @@ from models.probe import ProbeClassificationTwoLayer
 from vocab import DescriptionVocab, Tokens
 from torch.utils.data import Dataset
 
+from constants import (
+  DEFAULT_NOTE_DENSITY_BINS,
+  DEFAULT_MEAN_VELOCITY_BINS,
+  DEFAULT_MEAN_PITCH_BINS,
+  DEFAULT_MEAN_DURATION_BINS
+)
+
+
+from constants import (
+
+  NOTE_DENSITY_KEY,
+  MEAN_PITCH_KEY,
+  MEAN_VELOCITY_KEY,
+  MEAN_DURATION_KEY,
+)
+
 logger = logging.getLogger(__name__)
 
 class ProbingDataset(Dataset):
@@ -211,11 +227,19 @@ if __name__ == "__main__":
     device = torch.cuda.current_device()
 
     vocab = DescriptionVocab()
-    max_length = 15
+    max_length = 10
     if TOKEN_CLASS_OF_INTEREST == 'chords':
         filtering_tokens = vocab.encode(Tokens.get_chord_tokens())
     elif TOKEN_CLASS_OF_INTEREST == "instruments":
         filtering_tokens = vocab.encode(Tokens.get_instrument_tokens())
+    elif TOKEN_CLASS_OF_INTEREST == "density":
+        filtering_tokens = vocab.encode([f'{NOTE_DENSITY_KEY}_{i}' for i in range(len(DEFAULT_NOTE_DENSITY_BINS))])
+    elif TOKEN_CLASS_OF_INTEREST == "velocity":
+        filtering_tokens = vocab.encode([f'{MEAN_VELOCITY_KEY}_{i}' for i in range(len(DEFAULT_MEAN_VELOCITY_BINS))])
+    elif TOKEN_CLASS_OF_INTEREST == "pitch":
+        filtering_tokens = vocab.encode([f'{MEAN_PITCH_KEY}_{i}' for i in range(len(DEFAULT_MEAN_PITCH_BINS))])
+    elif TOKEN_CLASS_OF_INTEREST == "duration":
+        filtering_tokens = vocab.encode([f'{MEAN_DURATION_KEY}_{i}' for i in range(len(DEFAULT_MEAN_DURATION_BINS))])
     else:
         filtering_tokens = vocab.encode(Tokens.get_time_signature_tokens())
     
