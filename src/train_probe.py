@@ -143,7 +143,7 @@ class Trainer:
                     hits = y_hat == y  # [B, #task]
                     # hits_epoch += np.array([torch.sum(hits * (age == i)).item() for i in range(60)]).astype(float)
                     total_hits += torch.sum(hits).item()
-                    total_samples += x.shape[0]
+                    total_samples += x.shape[1]
                     
                 if is_train:
                     # backprop and update the parameters
@@ -191,30 +191,24 @@ def get_all_uuids(files):
     return list(uuids)
 
 if __name__ == "__main__":
-    dataset_files = glob.glob(DATASET_PATH)
+    dataset_files = os.listdir(DATASET_PATH)
+    print(dataset_files)
 
     ids = get_all_uuids(dataset_files)
+    print(ids)
 
     device = torch.cuda.current_device()
 
-    model = ProbeClassificationTwoLayer(
-        device,
-        probe_class=len(DescriptionVocab().tokens),
-        num_task=256,
-        mid_dim=256*16,
-        input_dim=256*512
-    )
 
     # Load the dataset
-    descriptions = []
-    hidden_states = []
-    for file_id in ids:
+    descriptions = None
+    hidden_states = None
+    for file_id in tqdm(ids):
         desc_batch = torch.load(os.path.join(DATASET_PATH, f"{file_id}_desc.pt"))
         hidden_batch = torch.load(os.path.join(DATASET_PATH, f"{file_id}_hidden.pt"))
 
-        for i in range(desc_batch.shape[0]):
-            descriptions.append(desc_batch[i])
-            hidden_states.append(hidden_batch[i])
+        descriptions = torch.cat([descriptions, desc_batch]) if descriptions is not None else desc_batch
+        hidden_states = torch.cat([hidden_states, torch.flatten(hidden_batch, start_dim=1)]) if hidden_states is not None else torch.flatten(hidden_batch, start_dim=1)
 
     descriptions = torch.tensor(descriptions)
     hidden_states = torch.tensor(hidden_states)
@@ -224,6 +218,13 @@ if __name__ == "__main__":
 
     dataset = ProbingDataset(hidden_states, descriptions)
 
+    model = ProbeClassificationTwoLayer(
+        device,
+        probe_class=len(DescriptionVocab().tokens),
+        num_task=256,
+        mid_dim=256,
+        input_dim=256*512
+    )
     trainer = Trainer(model, dataset, None, TrainerConfig())
 
     trainer.train()

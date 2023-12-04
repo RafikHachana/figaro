@@ -81,5 +81,7 @@ class ProbeClassificationTwoLayer(nn.Module):
             {"params": [param_dict[pn] for pn in sorted(list(no_decay))], "weight_decay": 0.0},
         ]
         optimizer = torch.optim.Adam(optim_groups, lr=train_config.learning_rate, betas=train_config.betas)
+
+        # optimizer = torch.optim.SGD(optim_groups, lr=train_config.learning_rate)
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.75, patience=0)
         return optimizer, scheduler
