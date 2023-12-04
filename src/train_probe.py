@@ -197,7 +197,7 @@ def filter_description(descriptions, tokens_to_include: list, max_length=10):
         tmp = []
         for val in description:
             if val.item() in tokens_to_include:
-                tmp.append(val.item())
+                tmp.append(tokens_to_include.index(val.item()))
         result.append(tmp[:max_length])
     return torch.tensor(result)
 
