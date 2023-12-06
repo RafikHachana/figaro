@@ -247,18 +247,14 @@ if __name__ == "__main__":
     descriptions = None
     hidden_states = None
     for file_id in tqdm(ids):
-        desc_batch = filter_description(torch.load(os.path.join(DATASET_PATH, f"{file_id}_desc.pt")), tokens_to_include=filtering_tokens, max_length=max_length)
-        hidden_batch = torch.load(os.path.join(DATASET_PATH, f"{file_id}_hidden.pt"))
+        try:
+            desc_batch = filter_description(torch.load(os.path.join(DATASET_PATH, f"{file_id}_desc.pt")), tokens_to_include=filtering_tokens, max_length=max_length)
+            hidden_batch = torch.load(os.path.join(DATASET_PATH, f"{file_id}_hidden.pt"))
 
-        descriptions = torch.cat([descriptions, desc_batch]) if descriptions is not None else desc_batch
-        hidden_states = torch.cat([hidden_states, torch.flatten(hidden_batch, start_dim=1)]) if hidden_states is not None else torch.flatten(hidden_batch, start_dim=1)
-
-
-    # chord_tokens = torch.tensor(vocab.encode(Tokens.get_chord_tokens()))
-
-    # for description in descriptions:
-    #     filtered = description[torch.isin(description, chord_tokens)]
-    #     print("Number of chord tokens", filtered.shape)
+            descriptions = torch.cat([descriptions, desc_batch]) if descriptions is not None else desc_batch
+            hidden_states = torch.cat([hidden_states, torch.flatten(hidden_batch, start_dim=1)]) if hidden_states is not None else torch.flatten(hidden_batch, start_dim=1)
+        except:
+            continue
 
     print("HIDDEN ALL SHAPE", hidden_states.shape)
     print("DESCRIPTION ALL SHAPE", descriptions.shape)
