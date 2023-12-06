@@ -17,6 +17,8 @@ class ProbeClassificationTwoLayer(nn.Module):
         self.proj = nn.Sequential(
             nn.Linear(self.input_dim, self.mid_dim, bias=True),
             nn.ReLU(True),
+            nn.Linear(self.mid_dim, self.mid_dim, bias=True),
+            nn.ReLU(True),
             nn.Linear(self.mid_dim, self.probe_class * self.num_task, bias=True),
         )
         self.apply(self._init_weights)
@@ -83,5 +85,5 @@ class ProbeClassificationTwoLayer(nn.Module):
         optimizer = torch.optim.Adam(optim_groups, lr=train_config.learning_rate, betas=train_config.betas)
 
         # optimizer = torch.optim.SGD(optim_groups, lr=train_config.learning_rate)
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.75, patience=0)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.9, patience=0)
         return optimizer, scheduler

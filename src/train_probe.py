@@ -54,9 +54,9 @@ class ProbingDataset(Dataset):
 
 class TrainerConfig:
     # optimization parameters
-    max_epochs = 10
+    max_epochs = 100
     batch_size = 64
-    learning_rate = 3e-4
+    learning_rate = 3e-3
     betas = (0.9, 0.95)
     grad_norm_clip = 1.0
     weight_decay = 0.1 # only applied on matmul weights
@@ -160,7 +160,7 @@ class Trainer:
                     hits = y_hat == y  # [B, #task]
                     # hits_epoch += np.array([torch.sum(hits * (age == i)).item() for i in range(60)]).astype(float)
                     total_hits += torch.sum(hits).item()
-                    total_samples += x.shape[1]
+                    total_samples += y.shape[0]*y.shape[1]
                     
                 if is_train:
                     # backprop and update the parameters
