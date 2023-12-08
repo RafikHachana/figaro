@@ -15,11 +15,11 @@ class ProbeClassificationTwoLayer(nn.Module):
         self.num_task = num_task
         self.mid_dim = mid_dim
         self.proj = nn.Sequential(
-            nn.Linear(self.input_dim, self.mid_dim, bias=True),
-            nn.ReLU(True),
-            nn.Linear(self.mid_dim, self.mid_dim, bias=True),
-            nn.ReLU(True),
-            nn.Linear(self.mid_dim, self.probe_class * self.num_task, bias=True),
+            # nn.Linear(self.input_dim, self.mid_dim, bias=True),
+            # nn.ReLU(True),
+            # nn.Linear(self.mid_dim, self.mid_dim, bias=True),
+            # nn.ReLU(True),
+            nn.Linear(self.input_dim, self.probe_class * self.num_task, bias=True),
         )
         self.apply(self._init_weights)
         self.to(device)

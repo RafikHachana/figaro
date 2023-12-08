@@ -182,7 +182,7 @@ class Trainer:
                 scheduler.step(test_loss)
                 test_acc = total_hits / total_samples
                 if prt: 
-                    logger.info(f"test loss {test_loss:.5f}; test acc {test_acc*100:.2f}%")
+                    print(f"test loss {test_loss:.5f}; test acc {test_acc*100:.2f}%")
                 self.test_loss_cont.append(test_loss)
                 self.test_acc_cont.append(test_acc)
                 # self.test_strat_acc_cont.append((hits_epoch / totals_epoch).tolist())
@@ -192,6 +192,7 @@ class Trainer:
         self.tokens = 0  # counter used for learning rate decay
         
         for epoch in range(config.max_epochs):
+            print("TEST DATASET", self.test_dataset)
             run_epoch('train')
             if self.test_dataset is not None:
                 test_loss = run_epoch('test')
